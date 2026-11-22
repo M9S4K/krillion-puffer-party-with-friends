@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Krillion Puffer Party With Friends",
+  "version": "1.0.0",
+  "description": "When one of you joins a Puffer Party room, the other is pulled into the same room automatically.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://krillion.io/*",
+    "https://party.krillion.io/*",
+    "https://ntfy.sh/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://krillion.io/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Krillion Puffer Party With Friends",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

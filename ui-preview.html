@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Party Joiner UI</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 30px 320px 46px 24px; background: #061324;
+    background-image: radial-gradient(900px 500px at 20% -10%, rgba(40,90,150,.35), transparent),
+                      radial-gradient(700px 400px at 90% 10%, rgba(20,70,120,.3), transparent);
+    color: #e8f3ff; font: .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  h1 { font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 4px; color: #9fc2ff; }
+  .sub { color: #9fb6d2; font-size: .75rem; margin: 0 0 26px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  figure { margin: 0; }
+  .stage { background: rgba(4,12,24,.5); border: 1px dashed rgba(125,180,255,.14);
+    border-radius: 14px; padding: 26px 22px 22px; min-width: 292px; display: flex; justify-content: center; }
+  figcaption { margin-top: 10px; max-width: 292px; font-size: .75rem; color: #9fb6d2; }
+  figcaption b { display: block; color: #e8f3ff; letter-spacing: .09em; font-weight: 400; margin-bottom: 3px; }
+
+  /* design lab */
+  #lab { position: fixed; top: 0; right: 0; bottom: 0; width: 288px; overflow-y: auto;
+    padding: 18px 18px 26px; background: rgba(4,11,22,.95); border-left: 1px solid rgba(125,180,255,.16);
+    backdrop-filter: blur(8px); }
+  #lab h2 { font-size: .6875rem; letter-spacing: .14em; text-transform: uppercase;
+    color: #6d8cb4; margin: 18px 0 8px; font-weight: 400; }
+  #lab h2:first-of-type { margin-top: 10px; }
+  .lab-row { display: grid; grid-template-columns: 1fr 104px 46px; align-items: center;
+    gap: 8px; padding: 3px 0; font-size: .75rem; color: #c7d9ee; }
+  .lab-row output { color: #6d8cb4; text-align: right; font-size: .6875rem; }
+  .lab-row output.overridden { color: #35d49a; }
+  .lab-row input:disabled { opacity: .3; }
+  .lab-target { grid-template-columns: 1fr 104px 46px; margin-bottom: 4px; }
+  .lab-target select { width: 104px; font: inherit; font-size: .6875rem; color: #e8f3ff;
+    background: rgba(10,22,44,.9); border: 1px solid rgba(125,180,255,.3); border-radius: 6px; padding: 4px 6px; }
+  #lab-scope-note { color: #35d49a; }
+  .lab-row input[type=range] { width: 104px; accent-color: #35d49a; }
+  .lab-row input[type=color] { width: 104px; height: 24px; padding: 0; cursor: pointer;
+    background: transparent; border: 1px solid rgba(125,180,255,.3); border-radius: 6px; }
+  #lab-actions { display: grid; gap: 7px; margin-top: 20px; }
+  #lab button { font: inherit; font-size: .75rem; letter-spacing: .06em; cursor: pointer;
+    padding: 9px; border-radius: 8px; color: #d7fff0;
+    background: rgba(53,212,154,.16); border: 1px solid rgba(53,212,154,.42); }
+  #lab button.ghost { background: transparent; border-color: rgba(125,180,255,.24); color: #9db5d3; }
+  #lab button:hover { filter: brightness(1.2); }
+  .lab-i { display: inline-grid; place-items: center; width: 12px; height: 12px; margin-left: 5px;
+    border: 1px solid rgba(125,180,255,.4); border-radius: 50%; font-style: normal;
+    font-size: .5rem; color: #6d8cb4; cursor: help; position: relative; vertical-align: 1px; }
+  .lab-i:hover, .lab-i:focus-visible { color: #e8f3ff; border-color: #35d49a; outline: none; }
+  .lab-i::after { content: attr(data-info); position: absolute; right: 0; top: calc(100% + 6px);
+    width: 196px; padding: 7px 9px; border-radius: 8px; z-index: 5;
+    background: #0d1c31; border: 1px solid rgba(125,180,255,.3); color: #c7d9ee;
+    font-size: .625rem; line-height: 1.45; text-align: left; letter-spacing: 0;
+    opacity: 0; visibility: hidden; transform: translateY(-2px);
+    transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 150ms; }
+  .lab-i:hover::after, .lab-i:focus-visible::after { opacity: 1; visibility: visible; transform: none; }
+  #lab-el h2 { margin-top: 10px; color: #35d49a; }
+  #lab-note { margin: 12px 0 0; font-size: .625rem; color: #6d8cb4; line-height: 1.5; }
+  #lab-out { margin-top: 8px; font-size: .625rem; color: #6d8cb4; white-space: pre-wrap;
+    word-break: break-all; max-height: 150px; overflow: auto; }
+/* Krillion Party Joiner — panel styles.
+   Tokens shared with the toast, concentric radii, 12px type floor in rem,
+   one press value, reduced-motion and hover gating. */
+
+#kpj, #kpj-toast {
+  /* --- primitives: one neutral ramp, one accent ramp, hue held end to end --- */
+  --navy-950: #040b16;  --navy-900: #081425;  --navy-850: #0d1c31;
+  --navy-800: #122440;  --navy-700: #1b3557;  --navy-600: #2a4a73;
+  --navy-500: #3f6391;  --navy-400: #6d8cb4;  --navy-300: #9db5d3;
+  --navy-200: #c7d9ee;  --navy-100: #e9f3ff;
+  --mint-700: #1c8f67;  --mint-600: #28ad7e;  --mint-500: #35d49a;
+  --mint-400: #5fe0b1;  --mint-300: #9eeed0;  --mint-100: #d7fff0;
+  --gold-500: #f3c457;  --coral-500: #ef6b6b;
+
+  /* --- semantic: every component reads these, never a primitive ---------- */
+  --surface: var(--navy-900);
+  --surface-top: var(--navy-850);
+  --surface-raised: var(--navy-800);
+  --surface-sunken: var(--navy-950);
+  --stroke-w: 1.5px;              /* stroke width, everywhere */
+  --stroke-l: .31;              /* stroke lightness */
+  --stroke-c: .03;             /* stroke chroma */
+  --stroke-h: 248;              /* stroke hue */
+  --stroke-a: .24;              /* stroke alpha */
+  --stroke-h2: 0;             /* second hue, for the gradient stroke */
+  --stroke-mix: 0%;             /* 0% = flat stroke, 100% = full gradient */
+  --stroke-angle: 195deg;
+  --corner-k: 1;                /* 2 = round, 3-5 = squircle, >5 = flatter */
+  --stroke-1: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / var(--stroke-a));
+  --stroke-2: oklch(var(--stroke-l) calc(var(--stroke-c) * 1.6) var(--stroke-h2) / var(--stroke-a));
+  --stroke: linear-gradient(var(--stroke-angle), var(--stroke-1),
+            color-mix(in oklab, var(--stroke-2) var(--stroke-mix), var(--stroke-1)));
+  --border-subtle: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / calc(var(--stroke-a) * .78));
+  --border: var(--stroke-1);
+  --border-input: var(--navy-500);
+  --text: var(--navy-100);
+  --text-dim: var(--navy-300);
+  --text-faint: var(--navy-400);
+  --accent: var(--mint-500);
+  --accent-deep: var(--mint-700);
+  --accent-ink: var(--mint-100);
+  --warn: var(--gold-500);
+  --bad: var(--coral-500);
+
+  /* legacy aliases kept so older rules keep resolving */
+  --bg: var(--surface);
+  --bg-2: var(--surface-raised);
+  --edge: var(--border-subtle);
+  --edge-strong: var(--border);
+  --edge-input: var(--border-input);
+
+  /* --- shape (concentric: outer = inner + padding) --------------------- */
+  --pad: 15px;
+  --pad-head: 8px;        /* header block padding */
+  --gap-row: 5px;         /* between presence rows */
+  --cta-h: 34px;          /* button height */
+  --r-inner: 18px;
+  --r-outer: 20px;
+
+  /* --- type (floor 0.75rem = 12px) ------------------------------------- */
+  --fs-body: .875rem;
+  --fs-label: .8125rem;
+  --fs-kicker: .5938rem;
+
+  /* --- size ------------------------------------------------------------- */
+  --w: 306px;
+
+  --ease: cubic-bezier(.23, 1, .32, 1);
+
+  /* --- depth ------------------------------------------------------------ */
+  --lip-a: .07;          /* top highlight strength */
+  --lift-a: .4;          /* drop shadow strength */
+  --lip: inset 0 1px 0 rgb(255 255 255 / var(--lip-a));
+  --lift: 0 1px 1px rgb(0 0 0 / calc(var(--lift-a) * .875)), 0 8px 18px rgb(0 0 0 / var(--lift-a));
+}
+@supports (color: oklch(0.5 0.1 250)) {
+  #kpj, #kpj-toast {
+    --navy-950: oklch(.14 .028 250);  --navy-900: oklch(.19 .035 250);
+    --navy-850: oklch(.23 .042 250);  --navy-800: oklch(.27 .048 250);
+    --navy-700: oklch(.34 .052 250);  --navy-600: oklch(.44 .056 250);
+    --navy-500: oklch(.54 .062 250);  --navy-400: oklch(.66 .048 250);
+    --navy-300: oklch(.78 .036 250);  --navy-200: oklch(.88 .024 250);
+    --navy-100: oklch(.96 .015 250);
+    --mint-700: oklch(.58 .11 160);   --mint-600: oklch(.68 .13 160);
+    --mint-500: oklch(.80 .15 160);   --mint-400: oklch(.86 .12 160);
+    --mint-300: oklch(.91 .09 160);   --mint-100: oklch(.96 .05 160);
+    --gold-500: oklch(.83 .13 85);    --coral-500: oklch(.70 .16 22);
+  }
+}
+
+#kpj {
+  position: relative; z-index: 1;
+  width: var(--w);
+  color: var(--text);
+  font: var(--fs-body)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+#kpj * { box-sizing: border-box; }
+#kpj button { font: inherit; color: inherit; cursor: pointer; background: transparent; border: 0; }
+#kpj svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColor; stroke-width: 1.5; }
+#kpj :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* --- collapsed pill ---------------------------------------------------- */
+#kpj button#kpj-pill {
+  display: flex; align-items: center; gap: 8px;
+  width: max-content; max-width: 100%; min-height: 32px;
+  padding: 0 14px 0 11px; border-radius: 999px;
+  border: var(--stroke-w) solid transparent;
+  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-dim); user-select: none;
+  transition: border-color 160ms var(--ease), color 160ms var(--ease), transform 150ms ease-out;
+}
+#kpj button#kpj-pill:active { transform: scale(.96); }
+#kpj.open button#kpj-pill { display: none; }
+
+/* --- panel ------------------------------------------------------------- */
+#kpj-stack { position: relative; filter: drop-shadow(0 12px 22px rgb(0 0 0 / .45)); }
+
+#kpj-panel {
+  display: none; position: relative; z-index: 2; border-radius: var(--r-outer);
+  border: var(--stroke-w) solid transparent;
+  overscroll-behavior: contain;
+  transform-origin: bottom left;           /* opens from the pill, not the centre */
+}
+#kpj.open #kpj-panel {
+  display: block;
+  opacity: 1; transform: scale(1) translateY(0);
+  transition: opacity 250ms var(--ease), transform 250ms var(--ease), display 250ms allow-discrete;
+}
+@starting-style {
+  #kpj.open #kpj-panel { opacity: 0; transform: scale(.98) translateY(8px); }
+}
+/* exit: shorter and smaller than the enter */
+#kpj.open.closing #kpj-panel {
+  opacity: 0; transform: scale(.99) translateY(4px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exits run shorter */
+}
+
+@keyframes kpj-say { from { opacity: 0; filter: blur(4px); transform: translateY(4px); } }
+
+/* a row only animates the first time it appears */
+.kpj-who-row.kpj-in { animation: kpj-row 300ms ease-out both; }
+@keyframes kpj-row { from { opacity: 0; filter: blur(4px); transform: translateY(12px); } }
+
+#kpj-top {
+  display: flex; align-items: center; gap: 8px; user-select: none;
+  padding: var(--pad-head) var(--pad); border-bottom: var(--stroke-w) solid var(--border-subtle);
+}
+#kpj-id { flex: 1; min-width: 0; display: grid; gap: 1px; }
+#kpj-kicker-row { position: relative; display: flex; align-items: center; gap: 5px; }
+#kpj-kicker {
+  font-size: var(--fs-kicker); line-height: 1.1; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+#kpj button#kpj-info {
+  width: 15px; height: 15px; display: grid; place-items: center; padding: 0;
+  border-radius: 50%; color: var(--text-faint);
+  transition: color 140ms var(--ease);
+}
+#kpj button#kpj-info svg { width: 11px; height: 11px; }
+#kpj-name-input {                                  /* underline only, no box */
+  width: 100%; min-width: 0; min-height: 21px; padding: 0 0 2px;
+  font: inherit; color: var(--text); background: transparent;
+  border: 0; border-bottom: var(--stroke-w) solid transparent; border-radius: 0;
+  text-overflow: ellipsis;
+  transition: border-color 140ms var(--ease), box-shadow 140ms var(--ease);
+}
+#kpj-name-input::placeholder { color: var(--text-faint); }
+#kpj-name-input:focus {
+  outline: none; border-bottom-color: var(--accent);
+  box-shadow: 0 1px 0 0 var(--accent);             /* a 2px underline without a layout shift */
+}
+
+/* info tooltip */
+#kpj-tip {
+  position: absolute; bottom: calc(100% + 7px); inset-inline-start: -2px; z-index: 4;
+  width: 186px; padding: 7px 9px; border-radius: var(--r-inner);
+  border: var(--stroke-w) solid transparent; color: var(--text-dim);
+  font-size: var(--fs-label); line-height: 1.4; text-wrap: pretty;
+  transform-origin: bottom left;
+  opacity: 0; visibility: hidden; transform: scale(.97) translateY(2px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 150ms;
+  pointer-events: none;
+}
+#kpj-info:hover + #kpj-tip, #kpj-info:focus-visible + #kpj-tip {
+  opacity: 1; visibility: visible; transform: none;
+}
+#kpj-top button {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border-radius: 6px; color: var(--text-faint);
+  transition: color 140ms var(--ease), background-color 140ms var(--ease), transform 150ms ease-out;
+}
+#kpj-top button:active { transform: scale(.96); }
+
+.kpj-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--text-faint);
+  transition: background-color 150ms var(--ease), box-shadow 150ms var(--ease);
+}
+.kpj-dot.live { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent); }
+.kpj-dot.wait { background: var(--warn); }
+.kpj-dot.dead { background: var(--bad); }
+
+/* --- who is here ------------------------------------------------------- */
+#kpj-who { padding: var(--pad) var(--pad) 2px; display: grid; gap: var(--gap-row); }
+.kpj-who-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.kpj-who-row .kpj-dot { align-self: center; }
+.kpj-who-row b {
+  font-weight: 400; color: var(--text);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kpj-who-row.kpj-away b { color: var(--text-dim); }
+#kpj button.kpj-invite {
+  padding: 0; font: inherit; color: var(--text-faint);
+  text-decoration: underline dotted; text-underline-offset: 3px;
+  text-decoration-thickness: from-font;
+  transition: color 150ms ease-out, text-decoration-color 150ms ease-out;
+}
+.kpj-me { font-style: normal; font-size: var(--fs-label); color: var(--text-faint); }
+.kpj-who-row span {
+  margin-inline-start: auto; padding-inline-start: 8px;
+  font-size: var(--fs-label); letter-spacing: .04em;
+  color: var(--text-dim); white-space: nowrap;
+}
+.kpj-who-row.kpj-same span { color: var(--accent); }
+
+/* --- actions ----------------------------------------------------------- */
+#kpj-acts { padding: var(--pad); }
+#kpj-cta {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch;
+  min-height: var(--cta-h); border-radius: var(--r-inner); overflow: hidden;
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+  border: var(--stroke-w) solid color-mix(in oklab, var(--accent) 38%, transparent);
+  transition: background-color 160ms var(--ease), transform 150ms ease-out, box-shadow 150ms ease-out;
+}
+#kpj-cta:has(#kpj-go:active) { transform: scale(.96); }
+#kpj-cta:has(#kpj-go:disabled) { opacity: .45; }
+#kpj-size {
+  padding: 0 19px 0 9px; border: 0; border-radius: 0;
+  border-inline-end: var(--stroke-w) solid color-mix(in oklab, var(--accent) 28%, transparent);
+  background-color: color-mix(in oklab, var(--accent) 10%, transparent);
+  color: var(--accent-ink);
+  font: inherit; font-size: var(--fs-label); cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23d7fff0' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M3 4.6 6 7.6l3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 6px center; background-size: 10px;
+  transition: background-color 140ms var(--ease);
+}
+#kpj-size:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#kpj-size option { background: var(--bg-2); color: var(--text); }
+#kpj button#kpj-go {
+  min-height: calc(var(--cta-h) - 2px); border: 0; border-radius: 0; background: transparent;
+  color: var(--accent-ink);
+  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;
+}
+#kpj button#kpj-go:disabled { cursor: default; }
+
+/* --- toast ------------------------------------------------------------- */
+#kpj-toast {
+  position: fixed; inset-inline-start: 14px; bottom: 60px; z-index: 2147483001;
+  pointer-events: none; max-width: 272px;
+  padding: 9px 12px; border-radius: var(--r-inner);
+  background: var(--bg); border: 1px solid var(--edge); color: var(--text);
+  font: var(--fs-label)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-wrap: pretty; box-shadow: 0 10px 26px rgb(0 0 0 / .5);
+  opacity: 0; transform: translateY(4px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exit */
+}
+#kpj-toast.show {
+  opacity: 1; transform: none;
+  transition: opacity 250ms var(--ease), transform 250ms var(--ease);  /* enter */
+}
+#kpj-toast.sticky { pointer-events: auto; cursor: pointer; border-color: var(--edge-strong); }
+
+/* --- input modality ---------------------------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+  #kpj button.kpj-invite:hover { color: var(--text); }
+  #kpj-name-input:hover:not(:focus) { border-bottom-color: var(--edge-input); }
+  #kpj button#kpj-info:hover { color: var(--text); }
+  #kpj button#kpj-pill:hover { border-color: var(--edge-strong); color: var(--text); }
+  #kpj-top button:hover { color: var(--text); background: color-mix(in oklab, var(--edge) 35%, transparent); }
+  #kpj-cta:has(#kpj-go:not(:disabled)):hover { background: color-mix(in oklab, var(--accent) 26%, transparent); }
+  #kpj-size:hover { background-color: color-mix(in oklab, var(--accent) 20%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #kpj *, #kpj-toast { transition-property: opacity, color, background-color, border-color !important; }
+  .kpj-who-row.kpj-in,   @keyframes kpj-fade { from { opacity: 0; } }
+  #kpj.open #kpj-panel, #kpj.open.closing #kpj-panel { transform: none !important; }
+  @starting-style { #kpj.open #kpj-panel { opacity: 0; transform: none; } }
+}
+
+@media (max-width: 720px) { #kpj { inset-inline-start: 8px; bottom: 8px; width: calc(var(--w) - 32px); } }
+
+/* --- depth: a little glass and a little moulding ------------------------ */
+
+#kpj button#kpj-pill {
+  background:
+    linear-gradient(180deg, var(--surface-top), var(--surface) 70%, var(--surface-sunken)) padding-box,
+    var(--stroke) border-box;
+  box-shadow: var(--lip), var(--lift);
+}
+
+#kpj-panel {
+  background:
+    linear-gradient(180deg, var(--surface-top), var(--surface) 55%, var(--surface-sunken)) padding-box,
+    var(--stroke) border-box;
+  box-shadow: var(--lip);
+}
+#kpj-stack { filter: drop-shadow(0 2px 2px rgb(0 0 0 / calc(var(--lift-a) * .7))) drop-shadow(0 11px 18px rgb(0 0 0 / var(--lift-a))); }
+
+#kpj-top { box-shadow: inset 0 -1px 0 rgb(0 0 0 / .25); }
+
+
+/* the one button is a moulded key */
+#kpj-cta {
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklab, var(--accent) 34%, transparent),
+      color-mix(in oklab, var(--accent-deep) 26%, transparent));
+  border-color: color-mix(in oklab, var(--accent) 46%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--accent-ink) 34%, transparent),
+    inset 0 -1px 0 rgb(0 0 0 / .25),
+    0 1px 2px rgb(0 0 0 / .35);
+}
+#kpj-cta:has(#kpj-go:active) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgb(0 0 0 / .38);
+}
+#kpj-size {
+  background-color: rgb(0 0 0 / .14);
+  box-shadow: inset -1px 0 0 rgb(0 0 0 / .2);
+}
+
+/* an LED, not a flat circle */
+.kpj-dot.live {
+  background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .55), var(--accent) 62%);
+  box-shadow: 0 0 7px color-mix(in oklab, var(--accent) 55%, transparent),
+              inset 0 0 2px rgb(0 0 0 / .35);
+}
+.kpj-dot.wait { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .5), var(--warn) 62%); }
+.kpj-dot.dead { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .45), var(--bad) 62%); }
+
+#kpj-tip, #kpj-toast {
+  background:
+    linear-gradient(180deg, var(--surface-raised), var(--surface)) padding-box,
+    var(--stroke) border-box;
+  box-shadow: var(--lip), var(--lift);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #kpj-cta:has(#kpj-go:active) { transform: none; }
+}
+
+/* --- corner smoothing (Chrome's superellipse; plain rounding elsewhere) --- */
+@supports (corner-shape: superellipse(2)) {
+  #kpj button#kpj-pill, #kpj-panel, #kpj-cta, #kpj-tip, #kpj-toast, #kpj-top button {
+    corner-shape: superellipse(var(--corner-k));
+  }
+}
+
+/* the status line lives at the foot of the card */
+#kpj-msg {
+  padding: 0 var(--pad) var(--pad); font-size: var(--fs-label);
+  color: var(--text-faint); text-wrap: pretty; overflow-wrap: anywhere;
+}
+#kpj-msg.kpj-empty { display: none; }
+#kpj-msg.kpj-fresh { animation: kpj-say 300ms ease-out both; }
+
+/* the invite keeps the dot's space so it lines up with the names */
+.kpj-dot.kpj-ghost { visibility: hidden; }
+
+  #kpj.open #kpj-panel { opacity: 1; transform: none; }
+  figure:nth-child(2) #kpj-tip { opacity: 1; visibility: visible; transform: none; }
+</style></head>
+<body>
+  <h1>Krillion Puffer Party With Friends · UI</h1>
+  <p class="sub">The shipped stylesheet and the extension's own markup. Drag a slider to retune the tokens.</p>
+  <div class="grid"><figure><div class="stage"><div id="kpj" class=""><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button></div></div><figcaption><b>Collapsed</b>How it sits while you play.</figcaption></figure>
+<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="puffa-boy" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row kpj-same"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>in UCYU</span></div><div class="kpj-who-row kpj-same"><i class="kpj-dot live"></i><b>dave</b><span>with you</span></div><div class="kpj-who-row kpj-same"><i class="kpj-dot live"></i><b>sam</b><span>with you</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">UCYU · 4/6 - going in.</div></div></div></div></div><figcaption><b>Three up</b>A party is however many turn up - rows and seats scale.</figcaption></figure>
+<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="puffa-boy" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>browsing</span></div><div class="kpj-who-row"><i class="kpj-dot live"></i><b>dave</b><span>too late</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">dave went to QMLL - following.</div></div></div></div></div><figcaption><b>Apart</b>They started without you: too late.</figcaption></figure>
+<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="puffa-boy" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>browsing</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">Linked - waiting for your friend</div></div></div></div></div><figcaption><b>Alone</b>Nobody there yet: a dotted Invite friend.</figcaption></figure>
+<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="" placeholder="name your party" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>browsing</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">Name your party above, same on both machines.</div></div></div></div></div><figcaption><b>First run</b>Nothing to configure but the name.</figcaption></figure></div>
+
+  <aside id="lab">
+    <h1>Design lab</h1>
+<label class="lab-row lab-target"><span>Editing</span><select id="lab-target"><option value="all" data-solid="all">All elements</option><option value="#kpj-panel" data-solid="#kpj #kpj-panel">Panel</option><option value="#kpj-pill" data-solid="#kpj button#kpj-pill">Pill</option><option value="#kpj-top" data-solid="#kpj #kpj-top">Header</option><option value="#kpj-name-input" data-solid="#kpj #kpj-name-input">Party name</option><option value="#kpj-kicker" data-solid="#kpj #kpj-kicker">Kicker</option><option value="#kpj-who" data-solid="#kpj #kpj-who">Rows</option><option value=".kpj-invite" data-solid="#kpj button.kpj-invite">Invite</option><option value="#kpj-cta" data-solid="#kpj #kpj-cta">Button</option><option value="#kpj-go" data-solid="#kpj button#kpj-go">Button label</option><option value="#kpj-size" data-solid="#kpj #kpj-size">Size chip</option><option value="#kpj-msg" data-solid="#kpj #kpj-msg">Status line</option><option value="#kpj-tip" data-solid="#kpj #kpj-tip">Tooltip</option></select><output id="lab-scope-note"></output></label><div id="lab-global"><h2>Colour</h2><label class="lab-row"><span>Sea<i class="lab-i" tabindex="0" data-info="Base colour of the card. The whole navy ramp is rebuilt from it.">i</i></span><input type="color" data-pick="sea" value="#16233c"><output data-for="pick-sea">#16233c</output></label><label class="lab-row"><span>Accent<i class="lab-i" tabindex="0" data-info="Colour of the main button and the with-you state.">i</i></span><input type="color" data-pick="acc" value="#35d49a"><output data-for="pick-acc">#35d49a</output></label><label class="lab-row"><span>Sea chroma<i class="lab-i" tabindex="0" data-info="Multiplies the sea ramp's colourfulness. 1x keeps the picked colour.">i</i></span><input type="range" data-k="sea-c" data-unit="x" data-scoped="0" min="0.3" max="2.0" step="0.05" value="1"><output data-for="sea-c">1x</output></label><label class="lab-row"><span>Accent chroma<i class="lab-i" tabindex="0" data-info="Multiplies the accent ramp's colourfulness.">i</i></span><input type="range" data-k="acc-c" data-unit="x" data-scoped="0" min="0.2" max="1.6" step="0.05" value="1"><output data-for="acc-c">1x</output></label><h2>Shape</h2><label class="lab-row"><span>Panel width<i class="lab-i" tabindex="0" data-info="Width of the whole panel and the card behind it.">i</i></span><input type="range" data-k="w" data-unit="px" data-scoped="0" min="200" max="360" step="2" value="306"><output data-for="w">306px</output></label><label class="lab-row"><span>Outer radius<i class="lab-i" tabindex="0" data-info="Corner radius of the card itself.">i</i></span><input type="range" data-k="r-outer" data-unit="px" data-scoped="1" min="0" max="32" step="1" value="20"><output data-for="r-outer">20px</output></label><label class="lab-row"><span>Inner radius<i class="lab-i" tabindex="0" data-info="Corner radius of things inside the card: button, chip, tooltip.">i</i></span><input type="range" data-k="r-inner" data-unit="px" data-scoped="1" min="0" max="28" step="1" value="18"><output data-for="r-inner">18px</output></label><label class="lab-row"><span>Corner smoothing<i class="lab-i" tabindex="0" data-info="Corner curve. 2 is round, 4 a squircle, 1 a straight chamfer.">i</i></span><input type="range" data-k="corner-k" data-unit="" data-scoped="1" min="0.5" max="8" step="0.1" value="1"><output data-for="corner-k">1</output></label><h2>Spacing</h2><label class="lab-row"><span>Card padding<i class="lab-i" tabindex="0" data-info="Space inside the card, around every block.">i</i></span><input type="range" data-k="pad" data-unit="px" data-scoped="0" min="6" max="24" step="1" value="15"><output data-for="pad">15px</output></label><label class="lab-row"><span>Header padding<i class="lab-i" tabindex="0" data-info="Space above and below the party name block.">i</i></span><input type="range" data-k="pad-head" data-unit="px" data-scoped="0" min="2" max="20" step="1" value="8"><output data-for="pad-head">8px</output></label><label class="lab-row"><span>Row gap<i class="lab-i" tabindex="0" data-info="Space between the people rows.">i</i></span><input type="range" data-k="gap-row" data-unit="px" data-scoped="0" min="0" max="16" step="1" value="5"><output data-for="gap-row">5px</output></label><label class="lab-row"><span>Button height<i class="lab-i" tabindex="0" data-info="Height of the Find a room button and its size chip.">i</i></span><input type="range" data-k="cta-h" data-unit="px" data-scoped="0" min="26" max="52" step="1" value="34"><output data-for="cta-h">34px</output></label><h2>Type</h2><label class="lab-row"><span>Body size<i class="lab-i" tabindex="0" data-info="Size of names and the button label.">i</i></span><input type="range" data-k="fs-body" data-unit="px" data-scoped="0" min="11" max="18" step="0.5" value="14"><output data-for="fs-body">14px</output></label><label class="lab-row"><span>Label size<i class="lab-i" tabindex="0" data-info="Size of the room status, the status line and the chip.">i</i></span><input type="range" data-k="fs-label" data-unit="px" data-scoped="0" min="9" max="16" step="0.5" value="13"><output data-for="fs-label">13px</output></label><label class="lab-row"><span>Kicker size<i class="lab-i" tabindex="0" data-info="Size of the small PARTY label above the name.">i</i></span><input type="range" data-k="fs-kicker" data-unit="px" data-scoped="0" min="7" max="14" step="0.5" value="9.5"><output data-for="fs-kicker">9.5px</output></label><h2>Depth</h2><label class="lab-row"><span>Top highlight<i class="lab-i" tabindex="0" data-info="Strength of the 1px highlight along the top of raised surfaces.">i</i></span><input type="range" data-k="lip-a" data-unit="" data-scoped="0" min="0" max="0.3" step="0.005" value="0.07"><output data-for="lip-a">0.07</output></label><label class="lab-row"><span>Drop shadow<i class="lab-i" tabindex="0" data-info="Strength of the shadow the card casts on the page.">i</i></span><input type="range" data-k="lift-a" data-unit="" data-scoped="0" min="0" max="0.8" step="0.01" value="0.4"><output data-for="lift-a">0.4</output></label><h2>Stroke</h2><label class="lab-row"><span>Stroke<i class="lab-i" tabindex="0" data-info="Colour every border is drawn in.">i</i></span><input type="color" data-pick="stroke" value="#3b4a60"><output data-for="pick-stroke">#3b4a60</output></label><label class="lab-row"><span>Stroke width<i class="lab-i" tabindex="0" data-info="Thickness of every border.">i</i></span><input type="range" data-k="stroke-w" data-unit="px" data-scoped="1" min="0" max="4" step="0.5" value="1.5"><output data-for="stroke-w">1.5px</output></label><label class="lab-row"><span>Stroke alpha<i class="lab-i" tabindex="0" data-info="Transparency of the stroke colour.">i</i></span><input type="range" data-k="stroke-a" data-unit="" data-scoped="1" min="0" max="1" step="0.01" value="0.24"><output data-for="stroke-a">0.24</output></label><label class="lab-row"><span>Gradient amount<i class="lab-i" tabindex="0" data-info="0% is a flat stroke. Higher blends toward the opposite hue.">i</i></span><input type="range" data-k="stroke-mix" data-unit="%" data-scoped="1" min="0" max="100" step="1" value="0"><output data-for="stroke-mix">0%</output></label><label class="lab-row"><span>Gradient angle<i class="lab-i" tabindex="0" data-info="Direction the stroke gradient runs.">i</i></span><input type="range" data-k="stroke-angle" data-unit="deg" data-scoped="1" min="0" max="360" step="5" value="195"><output data-for="stroke-angle">195deg</output></label></div>
+    <div id="lab-el" hidden>
+      <h2 id="lab-el-name">Element</h2>
+      <div id="lab-el-rows"></div>
+    </div>
+    <div id="lab-actions">
+      <button id="lab-copy">Copy tokens</button>
+      <button id="lab-clear" class="ghost" hidden>Clear this element</button>
+      <button id="lab-reset" class="ghost">Reset all</button>
+    </div>
+    <p id="lab-note"></p>
+    <pre id="lab-out"></pre>
+  </aside>
+
+<script>
+const PROPS = [{"k": "width", "label": "Width", "kind": "range", "min": 0, "max": 420, "step": 2, "unit": "px", "css": "width", "info": "How wide the element is. 0 leaves it as the layout decides."}, {"k": "height", "label": "Height", "kind": "range", "min": 0, "max": 120, "step": 1, "unit": "px", "css": "min-height", "info": "Smallest height it can be; content can still push it taller."}, {"k": "padding", "label": "Padding", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "padding", "info": "Space inside the element, between its edge and its content."}, {"k": "margin", "label": "Margin", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "margin", "info": "Space outside the element, pushing its neighbours away."}, {"k": "gap", "label": "Gap", "kind": "range", "min": 0, "max": 30, "step": 1, "unit": "px", "css": "gap", "info": "Space between this element's children. Only bites on rows and stacks."}, {"k": "radius", "label": "Corner radius", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "border-radius", "info": "How round the corners are."}, {"k": "corner", "label": "Corner smoothing", "kind": "range", "min": 0.5, "max": 8, "step": 0.1, "unit": "", "css": "corner-shape", "info": "2 is a plain round corner, 4 a squircle, 1 a straight chamfer."}, {"k": "fs", "label": "Font size", "kind": "range", "min": 8, "max": 24, "step": 0.5, "unit": "px", "css": "font-size", "info": "Text size inside this element."}, {"k": "ls", "label": "Letter spacing", "kind": "range", "min": -0.02, "max": 0.3, "step": 0.005, "unit": "em", "css": "letter-spacing", "info": "Space between letters. Uppercase labels want more."}, {"k": "sw", "label": "Stroke width", "kind": "range", "min": 0, "max": 6, "step": 0.5, "unit": "px", "css": "border-width", "info": "Thickness of the border on every side."}, {"k": "opacity", "label": "Opacity", "kind": "range", "min": 0, "max": 1, "step": 0.01, "unit": "", "css": "opacity", "info": "Transparency of the whole element, contents included."}, {"k": "shadow", "label": "Shadow", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "box-shadow", "info": "Drop shadow depth beneath the element."}, {"k": "color", "label": "Text colour", "kind": "color", "min": 0, "max": 0, "step": 0, "unit": "", "css": "color", "info": "Colour of the text in this element."}, {"k": "bg", "label": "Background", "kind": "color", "min": 0, "max": 0, "step": 0, "unit": "", "css": "background", "info": "Flat fill behind the element. Replaces its gradient."}, {"k": "stroke", "label": "Stroke colour", "kind": "color", "min": 0, "max": 0, "step": 0, "unit": "", "css": "border-color", "info": "Colour of the border."}];
+const OVERRIDE = {"all": "all", "#kpj-panel": "#kpj #kpj-panel", "#kpj-pill": "#kpj button#kpj-pill", "#kpj-top": "#kpj #kpj-top", "#kpj-name-input": "#kpj #kpj-name-input", "#kpj-kicker": "#kpj #kpj-kicker", "#kpj-who": "#kpj #kpj-who", ".kpj-invite": "#kpj button.kpj-invite", "#kpj-cta": "#kpj #kpj-cta", "#kpj-go": "#kpj button#kpj-go", "#kpj-size": "#kpj #kpj-size", "#kpj-msg": "#kpj #kpj-msg", "#kpj-tip": "#kpj #kpj-tip"};
+const SEA = [[950,.14,.028],[900,.19,.035],[850,.23,.042],[800,.27,.048],[700,.34,.052],
+             [600,.44,.056],[500,.54,.062],[400,.66,.048],[300,.78,.036],[200,.88,.024],[100,.96,.015]];
+const ACC = [[700,.58,.11],[600,.68,.13],[500,.80,.15],[400,.86,.12],[300,.91,.09],[100,.96,.05]];
+const el = id => document.getElementById(id);
+const sliders = [...document.querySelectorAll('#lab input[type=range]')];
+const target = el('lab-target');
+const style = document.createElement('style');
+document.head.appendChild(style);
+
+const picks = [...document.querySelectorAll('#lab input[type=color]')];
+const base = {};                       // slider defaults, straight from the stylesheet
+for (const s of sliders) base[s.dataset.k] = s.getAttribute('value');
+for (const c of picks) base['pick-' + c.dataset.pick] = c.getAttribute('value');
+
+// sRGB hex -> OKLCH, so a picked colour can drive a whole ramp
+function hex2oklch(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const f = v => { v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; };
+  const r = f(n >> 16 & 255), g = f(n >> 8 & 255), b = f(n & 255);
+  const l = Math.cbrt(.4122214708*r + .5363325363*g + .0514459929*b);
+  const m = Math.cbrt(.2119034982*r + .6806995451*g + .1073969566*b);
+  const s2 = Math.cbrt(.0883024619*r + .2817188376*g + .6299787005*b);
+  const L = .2104542553*l + .7936177850*m - .0040720468*s2;
+  const A = 1.9779984951*l - 2.4285922050*m + .4505937099*s2;
+  const B = .0259040371*l + .7827717662*m - .8086757660*s2;
+  const C = Math.hypot(A, B);
+  let H = Math.atan2(B, A) * 180 / Math.PI; if (H < 0) H += 360;
+  return { L, C, H };
+}
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+let state = { ...base };               // what every element inherits
+let scoped = {};                       // { '#kpj-cta': { 'stroke-w': '3' } }
+
+const px = (k, v) => `  --${k}: ${v}px;\n`;
+const rem = (k, v) => `  --${k}: ${(v/16).toFixed(4)}rem;\n`;
+
+function strokeBlock(v) {
+  const k = hex2oklch(v['pick-stroke']);
+  return `  --stroke-w: ${v['stroke-w']}px;\n  --stroke-l: ${k.L.toFixed(3)};\n`
+       + `  --stroke-c: ${k.C.toFixed(3)};\n  --stroke-h: ${k.H.toFixed(0)};\n  --stroke-a: ${v['stroke-a']};\n`
+       + `  --stroke-h2: ${((k.H + 180) % 360).toFixed(0)};\n  --stroke-mix: ${v['stroke-mix']}%;\n`
+       + `  --stroke-angle: ${v['stroke-angle']}deg;\n`;
+}
+
+function globalTokens() {
+  const v = state;
+  let out = '';
+  const sea = hex2oklch(v['pick-sea']), acc = hex2oklch(v['pick-acc']);
+  const dSea = sea.L - .54, kSea = sea.C / .062 * v['sea-c'];
+  const dAcc = acc.L - .80, kAcc = acc.C / .150 * v['acc-c'];
+  for (const [step, L, C] of SEA)
+    out += `  --navy-${step}: oklch(${clamp(L + dSea, .02, .99).toFixed(3)} ${(C * kSea).toFixed(3)} ${sea.H.toFixed(0)});\n`;
+  for (const [step, L, C] of ACC)
+    out += `  --mint-${step}: oklch(${clamp(L + dAcc, .02, .99).toFixed(3)} ${(C * kAcc).toFixed(3)} ${acc.H.toFixed(0)});\n`;
+  out += px('w', v['w']) + px('r-outer', v['r-outer']) + px('r-inner', v['r-inner']) + px('pad', v['pad']);
+  out += px('pad-head', v['pad-head']) + px('gap-row', v['gap-row']) + px('cta-h', v['cta-h']);
+  out += rem('fs-body', v['fs-body']) + rem('fs-label', v['fs-label']) + rem('fs-kicker', v['fs-kicker']);
+  out += `  --lip-a: ${v['lip-a']};\n  --lift-a: ${v['lift-a']};\n`;
+  out += strokeBlock(v) + `  --corner-k: ${v['corner-k']};\n`;
+  return out;
+}
+
+function scopedTokens(sel) {
+  const o = scoped[sel] || {};
+  const keys = Object.keys(o);
+  if (!keys.length) return '';
+  let out = '';
+  for (const k of keys) {
+    const v = o[k];
+    if (k === 'stroke-mix') out += `  --stroke-mix: ${v}%;\n`;
+    else if (k === 'stroke-angle') out += `  --stroke-angle: ${v}deg;\n`;
+    else if (['stroke-w','r-outer','r-inner','pad-head','gap-row','cta-h'].includes(k)) out += px(k, v);
+    else out += `  --${k}: ${v};\n`;
+  }
+  // elements whose stroke is a plain border need the colour restated
+  const opt = [...target.options].find(t => t.value === sel);
+  if (opt && opt.dataset.solid === '1' && keys.some(k => k.startsWith('stroke-'))) {
+    const m = { ...state, ...o };
+    out += `  border-color: oklch(${m['stroke-l']} ${m['stroke-c']} ${m['stroke-h']} / ${m['stroke-a']});\n`;
+  }
+  if (keys.includes('r-outer') || keys.includes('r-inner'))
+    out += `  border-radius: ${o['r-outer'] ?? o['r-inner']}px;\n`;
+  return `${sel} {\n${out}}\n`;
+}
+
+let elOver = {};   // { '#kpj-cta': { padding: '12', color: '#fff' } }
+
+function elDecl(sel) {
+  const o = elOver[sel] || {};
+  const keys = Object.keys(o);
+  if (!keys.length) return '';
+  let out = '';
+  for (const k of keys) {
+    const prop = PROPS.find(p => p.k === k);
+    if (!prop) continue;
+    const v = o[k];
+    if (k === 'corner') out += `  corner-shape: superellipse(${v});\n`;
+    else if (k === 'shadow') out += `  box-shadow: 0 ${Math.round(v/3)}px ${v}px rgb(0 0 0 / .45);\n`;
+    else if (k === 'bg') out += `  background: ${v};\n`;
+    else if (prop.kind === 'color') out += `  ${prop.css}: ${v};\n`;
+    else out += `  ${prop.css}: ${v}${prop.unit};\n`;
+  }
+  return `${OVERRIDE[sel] || sel} {\n${out}}\n`;
+}
+
+function css() {
+  let out = '#kpj, #kpj-toast {\n' + globalTokens() + '}\n';
+  for (const sel of Object.keys(scoped)) out += scopedTokens(sel);
+  for (const sel of Object.keys(elOver)) out += elDecl(sel);
+  return out;
+}
+
+const rgbToHex = v => {
+  const m = (v || '').match(/[\d.]+/g);
+  if (!m) return '#000000';
+  return '#' + m.slice(0, 3).map(n => Math.round(+n).toString(16).padStart(2, '0')).join('');
+};
+
+function buildInspector(sel) {
+  const node = document.querySelector(sel);
+  const box = el('lab-el-rows');
+  box.innerHTML = '';
+  if (!node) { box.textContent = 'Not in view.'; return; }
+  const cs = getComputedStyle(node);
+  for (const p of PROPS) {
+    const saved = elOver[sel]?.[p.k];
+    let seed;
+    if (p.kind === 'color') {
+      seed = saved ?? rgbToHex(cs[p.css === 'background' ? 'backgroundColor' : p.css.replace(/-(.)/g, (_, c) => c.toUpperCase())]);
+    } else if (p.k === 'corner') {
+      seed = saved ?? (cs.cornerShape?.match(/[\d.]+/)?.[0] ?? 2);
+    } else if (p.k === 'shadow') {
+      seed = saved ?? 0;
+    } else {
+      const raw = cs[p.css.replace(/-(.)/g, (_, c) => c.toUpperCase())];
+      seed = saved ?? (parseFloat(raw) || 0);
+    }
+    const row = document.createElement('label');
+    row.className = 'lab-row';
+    row.innerHTML = `<span>${p.label}<i class="lab-i" tabindex="0" data-info="${p.info}">i</i></span>`
+      + (p.kind === 'color'
+          ? `<input type="color" data-el="${p.k}" value="${seed}">`
+          : `<input type="range" data-el="${p.k}" min="${p.min}" max="${p.max}" step="${p.step}" value="${seed}">`)
+      + `<output>${seed}${p.kind === 'color' ? '' : p.unit}</output>`;
+    const input = row.querySelector('input');
+    const out = row.querySelector('output');
+    if (saved !== undefined) out.classList.add('overridden');
+    input.addEventListener('input', () => {
+      (elOver[sel] ||= {})[p.k] = input.value;
+      out.textContent = input.value + (p.kind === 'color' ? '' : p.unit);
+      out.classList.add('overridden');
+      apply();
+    });
+    box.appendChild(row);
+  }
+}
+
+function apply() {
+  style.textContent = css();
+  el('lab-out').textContent = css();
+  try { localStorage.setItem('kpj-lab', JSON.stringify({ state, scoped, elOver })); } catch {}
+}
+
+function show(s) {
+  const sel = target.value;
+  const scopedOn = sel !== 'all' && s.dataset.scoped === '1';
+  const v = scopedOn ? (scoped[sel]?.[s.dataset.k] ?? state[s.dataset.k]) : state[s.dataset.k];
+  s.value = v;
+  s.disabled = sel !== 'all' && s.dataset.scoped !== '1';
+  const o = document.querySelector(`output[data-for="${s.dataset.k}"]`);
+  if (o) {
+    o.textContent = v + s.dataset.unit;
+    o.classList.toggle('overridden', scopedOn && scoped[sel]?.[s.dataset.k] !== undefined);
+  }
+}
+
+function refresh() {
+  for (const s of sliders) show(s);
+  const sel = target.value;
+  const single = sel !== 'all';
+  el('lab-global').hidden = single;
+  el('lab-el').hidden = !single;
+  el('lab-clear').hidden = !single;
+  if (single) {
+    el('lab-el-name').textContent = target.selectedOptions[0].textContent;
+    buildInspector(sel);
+  }
+  const n = (Object.keys(scoped[sel] || {}).length + Object.keys(elOver[sel] || {}).length);
+  el('lab-scope-note').textContent = single ? n + ' set' : 'all';
+}
+
+try {
+  const saved = JSON.parse(localStorage.getItem('kpj-lab') || '{}');
+  if (saved.state) state = { ...base, ...saved.state };
+  if (saved.scoped) scoped = saved.scoped;
+  if (saved.elOver) elOver = saved.elOver;
+} catch {}
+
+for (const s of sliders) {
+  s.addEventListener('input', () => {
+    const sel = target.value;
+    if (sel === 'all') {
+      state[s.dataset.k] = s.value;
+      for (const o of Object.values(scoped)) delete o[s.dataset.k];   // a global edit wins
+    } else {
+      (scoped[sel] ||= {})[s.dataset.k] = s.value;
+    }
+    show(s);
+    el('lab-scope-note').textContent = sel === 'all' ? 'all' : (Object.keys(scoped[sel] || {}).length + ' set');
+    apply();
+  });
+}
+for (const c of picks) {
+  if (state['pick-' + c.dataset.pick]) c.value = state['pick-' + c.dataset.pick];
+  c.addEventListener('input', () => {
+    state['pick-' + c.dataset.pick] = c.value;
+    const o = document.querySelector(`output[data-for="pick-${c.dataset.pick}"]`);
+    if (o) o.textContent = c.value;
+    apply();
+  });
+}
+target.addEventListener('change', refresh);
+refresh();
+apply();
+
+el('lab-note').textContent = CSS.supports('corner-shape: superellipse(2)')
+  ? 'Corner smoothing is live in this browser.'
+  : 'Corner smoothing needs corner-shape support; that slider does nothing here.';
+
+el('lab-copy').onclick = async () => {
+  const text = '/* paste over the token block in extension/content.css */\n@supports (color: oklch(0.5 0.1 250)) {\n'
+    + css().replace(/^/gm, '  ') + '}';
+  try { await navigator.clipboard.writeText(text); el('lab-copy').textContent = 'Copied'; }
+  catch { el('lab-out').textContent = text; }
+  setTimeout(() => el('lab-copy').textContent = 'Copy tokens', 1200);
+};
+el('lab-clear').onclick = () => { delete scoped[target.value]; delete elOver[target.value]; refresh(); apply(); };
+el('lab-reset').onclick = () => {
+  state = { ...base }; scoped = {}; elOver = {};
+  for (const c of picks) c.value = base['pick-' + c.dataset.pick];
+  refresh(); apply();
+};
+</script>
+</body></html>

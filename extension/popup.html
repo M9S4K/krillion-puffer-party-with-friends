@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: dark; }
+  body { width: 240px; margin: 0; padding: 16px; background: #071020; color: #e8f3ff;
+         font: .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+         -webkit-font-smoothing: antialiased; }
+  h1 { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 10px; color: #9fc2ff; }
+  p { margin: 0 0 14px; color: #9fb6d2; font-size: .75rem; text-wrap: pretty; }
+  label { display: block; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: #9fb6d2; margin-bottom: 5px; }
+  input { width: 100%; box-sizing: border-box; background: rgba(10,22,44,.9); color: #eaf5ff;
+          border: 1px solid #3a6ba8; border-radius: 8px; padding: 8px; font: inherit; min-height: 34px; }
+  input:focus { outline: 2px solid #35d49a; outline-offset: 2px; border-color: #35d49a; }
+  a { display: block; margin-top: 14px; text-align: center; text-decoration: none;
+      background: linear-gradient(180deg, rgba(61,220,151,.22), rgba(61,220,151,.1));
+      border: 1px solid rgba(61,220,151,.5); color: #d9fff0; border-radius: 7px;
+      padding: 10px; letter-spacing: .08em; font-size: .75rem; text-transform: uppercase; min-height: 36px; }
+  a:hover { filter: brightness(1.25); }
+  #ok { height: 14px; font-size: .75rem; color: #35d49a; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <h1>Krillion Party Joiner</h1>
+  <p>Everything lives in the panel at the bottom-left of the game. This is just the quick way in.</p>
+  <label for="party">Party name</label>
+  <input id="party" type="text" spellcheck="false" autocomplete="off" placeholder="puffa-boy">
+  <div id="ok" role="status" aria-live="polite"></div>
+  <a href="https://krillion.io/party" target="_blank" rel="noopener">Open Puffer Party</a>
+  <script src="popup.js"></script>
+</body>
+</html>
