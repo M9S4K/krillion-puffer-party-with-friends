@@ -87,6 +87,18 @@
 
 
 
+  // one table: the label people read, and the lobby sizes it accepts
+  const SIZES = [
+    { v: "any", label: "Any",   fits: () => true },
+    { v: "2",   label: "1v1",   fits: m => m === 2 },
+    { v: "3",   label: "3s",    fits: m => m === 3 },
+    { v: "6",   label: "4-6",   fits: m => m >= 4 && m <= 6 },
+    { v: "10",  label: "8-10",  fits: m => m >= 7 && m <= 10 },
+    { v: "12",  label: "10+",   fits: m => m >= 11 }
+  ];
+  const sizeOf = v => SIZES.find(x => x.v === v) || SIZES[0];
+  const HOLD_MS = 4000;             // moving a party that is already together
+
   /* ---------- panel ---------- */
 
   function build() {
@@ -98,7 +110,7 @@
       <div id="kpj-panel">
         <div id="kpj-top">
           <div id="kpj-id">
-            <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Both of you type the same party name. Only room codes travel.</span></div>
+            <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Make up any name, then tell your friends to type it exactly. Same name, same party. Only room codes travel between you.</span></div>
             <input id="kpj-name-input" type="text" spellcheck="false" autocomplete="off"
                    aria-label="Party name" placeholder="name your party">
           </div>
@@ -107,14 +119,16 @@
         <div id="kpj-who"></div>
         <div id="kpj-acts">
           <div id="kpj-cta">
-          <select id="kpj-size" aria-label="Room size">
-            <option value="any">Any size</option>
-            <option value="2">1v1</option>
-            <option value="3">3 players</option>
-            <option value="6">4-6</option>
-            <option value="10">8-10</option>
-          </select>
-          <button id="kpj-go">Find room</button>
+          <div id="kpj-size-wrap">
+            <button id="kpj-size" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Room size">
+              <span id="kpj-size-txt">Any</span>
+              <svg class="kpj-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.6 6 7.6l3-3" stroke-linecap="round"/></svg>
+            </button>
+            <ul id="kpj-size-menu" role="listbox" aria-label="Room size" tabindex="-1" hidden>
+              ${SIZES.map(o => `<li role="option" id="kpj-size-${o.v}" data-v="${o.v}" aria-selected="false">${o.label}</li>`).join("")}
+            </ul>
+          </div>
+          <button id="kpj-go" type="button"><i class="kpj-fill" aria-hidden="true"></i><span id="kpj-go-txt">Find room</span></button>
           </div>
         </div>
         <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log"></button>
@@ -130,6 +144,9 @@
       who: root.querySelector("#kpj-who"),
       go: root.querySelector("#kpj-go"),
       size: root.querySelector("#kpj-size"),
+      sizeTxt: root.querySelector("#kpj-size-txt"),
+      sizeMenu: root.querySelector("#kpj-size-menu"),
+      goTxt: root.querySelector("#kpj-go-txt"),
       msg: root.querySelector("#kpj-msg"),
       party: root.querySelector("#kpj-name-input")
     };
@@ -139,12 +156,84 @@
       if (e.key === "Escape" && root.classList.contains("open") && !/input|textarea/i.test(document.activeElement?.tagName || "")) setOpen(false);
     });
     root.querySelector("#kpj-close").onclick = () => setOpen(false);
-    el.go.onclick = findRoom;
     el.msg.onclick = copyLog;
     document.addEventListener("keydown", e => {
       if (e.altKey && (e.key === "l" || e.key === "L")) { e.preventDefault(); copyLog(); }
     });
-    el.size.onchange = () => chrome.storage.sync.set({ size: el.size.value });
+
+    /* --- room size: a listbox, so it can wear the panel's own clothes --- */
+    const sizeOpen = open => {
+      el.sizeMenu.hidden = !open;
+      el.size.setAttribute("aria-expanded", String(open));
+      if (!open) {
+        el.sizeMenu.removeAttribute("aria-activedescendant");
+        el.sizeMenu.querySelectorAll(".kpj-cursor").forEach(n => n.classList.remove("kpj-cursor"));
+        return;
+      }
+      const sel = el.sizeMenu.querySelector('[aria-selected="true"]') || el.sizeMenu.firstElementChild;
+      sel.classList.add("kpj-cursor");
+      el.sizeMenu.setAttribute("aria-activedescendant", sel.id);
+      el.sizeMenu.focus();
+    };
+    const sizePick = v => { chrome.storage.sync.set({ size: v }); cfg.size = v; paintSize(); };
+    el.size.onclick = () => sizeOpen(el.sizeMenu.hidden);
+    el.size.onkeydown = ev => {
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); sizeOpen(true); }
+    };
+    el.sizeMenu.onclick = ev => {
+      const li = ev.target.closest("[data-v]");
+      if (!li) return;
+      sizePick(li.dataset.v); sizeOpen(false); el.size.focus();
+    };
+    el.sizeMenu.onkeydown = ev => {
+      const items = [...el.sizeMenu.children];
+      const i = Math.max(0, items.findIndex(n => n.classList.contains("kpj-cursor")));
+      if (ev.key === "Escape") {                      // the panel's own Escape must not also fire
+        ev.preventDefault(); ev.stopPropagation(); sizeOpen(false); el.size.focus(); return;
+      }
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault(); sizePick(items[i].dataset.v); sizeOpen(false); el.size.focus(); return;
+      }
+      const to = ev.key === "ArrowDown" ? i + 1 : ev.key === "ArrowUp" ? i - 1
+               : ev.key === "Home" ? 0 : ev.key === "End" ? items.length - 1 : null;
+      if (to === null) return;
+      ev.preventDefault();
+      const n = Math.max(0, Math.min(items.length - 1, to));
+      items[i].classList.remove("kpj-cursor");
+      items[n].classList.add("kpj-cursor");
+      el.sizeMenu.setAttribute("aria-activedescendant", items[n].id);
+    };
+    document.addEventListener("pointerdown", ev => {
+      const t = ev.target instanceof Element ? ev.target : null;
+      if (!el.sizeMenu.hidden && !t?.closest("#kpj-size-wrap")) sizeOpen(false);
+    }, true);
+
+    /* --- the key: a tap to find a room, a hold to move a party already together --- */
+    let holdT = null;
+    const endHold = () => { clearTimeout(holdT); holdT = null; el.go.classList.remove("kpj-holding"); };
+    const startHold = () => {
+      if (el.go.disabled || !el.go.dataset.hold || holdT) return;
+      el.go.classList.add("kpj-holding");
+      holdT = setTimeout(() => {
+        const still = !!el.go.dataset.hold;
+        endHold();
+        if (still) findRoom();
+      }, HOLD_MS);
+    };
+    el.go.onclick = () => { if (!el.go.dataset.hold) findRoom(); };
+    el.go.onpointerdown = ev => { if (ev.button === 0) startHold(); };
+    el.go.onpointerup = endHold;
+    el.go.onpointerleave = endHold;
+    el.go.onpointercancel = endHold;
+    el.go.onblur = endHold;
+    el.go.onkeydown = ev => {                        // a plain key press still clicks
+      if (!el.go.dataset.hold) return;
+      if ((ev.key === " " || ev.key === "Enter") && !ev.repeat) { ev.preventDefault(); startHold(); }
+    };
+    el.go.onkeyup = ev => {
+      if (!el.go.dataset.hold) return;
+      if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); endHold(); }
+    };
     el.party.oninput = () => chrome.storage.sync.set({ party: el.party.value.trim() });
     el.party.onkeydown = e => { if (e.key === "Enter") el.party.blur(); };
     return root;
@@ -198,6 +287,13 @@
     if (ms) t._h = setTimeout(() => t.classList.remove("show", "sticky"), ms);
   }
 
+  function paintSize() {
+    if (!el.sizeTxt) return;
+    const cur = sizeOf(cfg.size || "any");
+    el.sizeTxt.textContent = cur.label;
+    for (const li of el.sizeMenu.children) li.setAttribute("aria-selected", String(li.dataset.v === cur.v));
+  }
+
   // The whole point of the panel: who is here, and are we together.
   function render() {
     if (!el.root) return;
@@ -236,8 +332,10 @@
       el.who.querySelector(".kpj-invite").onclick = invite;
     }
 
-    const size = mates.length + 1;
-    el.go.textContent = "Find room";
+    // all of you in one room already? moving means dragging everyone out, so make it deliberate
+    const together = !!mine && mates.length > 0 && mates.every(p => p.room === mine);
+    el.go.dataset.hold = together ? "1" : "";
+    el.goTxt.textContent = together ? "Hold to move" : "Find room";
     el.go.disabled = !cfg.enabled || !cfg.party;
 
     // the link state is spelled out, never carried by the dot's colour alone
@@ -451,16 +549,12 @@
     if (!r.ok || !r.rooms?.length) return say("Can\u2019t read the room list. Check your connection and try again.", 8000);
     const need = Math.max(2, size);
     const want = cfg.size || "any";
-    const fits = x => want === "any" ? true
-      : want === "2" ? x.maxPlayers === 2
-      : want === "3" ? x.maxPlayers === 3
-      : want === "6" ? x.maxPlayers >= 4 && x.maxPlayers <= 6
-      : x.maxPlayers >= 7;
+    const fits = x => sizeOf(want).fits(x.maxPlayers);
     const open = r.rooms.filter(x => x.phase === "lobby" && (x.maxPlayers - x.players) >= need);
     const pick = [...open.filter(fits), ...(want === "any" ? [] : [])]
       .sort((a, b) => (b.players - a.players) || (b.maxPlayers - a.maxPlayers))[0];
     if (!pick) {
-      const label = el.size.selectedOptions[0].textContent.toLowerCase();
+      const label = sizeOf(want).label.toLowerCase();
       return say(open.length
         ? `No ${label} lobby with ${need} free seats. Try another size or wait a few seconds.`
         : `No lobby with ${need} free seats right now. Try again in a few seconds.`, 8000);
@@ -517,7 +611,7 @@
 
       build();
       el.party.value = cfg.party || "";
-      el.size.value = cfg.size || "any";
+      paintSize();
       if (cfg.open || !cfg.party) el.root.classList.add("open");
       render();
       watchClicks();
@@ -538,7 +632,7 @@
       const node = el.root?.querySelector("#kpj-" + k);
       if (node && node.type === "checkbox" && node.checked !== !!v.newValue) node.checked = !!v.newValue;
       if (k === "party" && el.party && document.activeElement !== el.party) el.party.value = v.newValue || "";
-      if (k === "size" && el.size) el.size.value = v.newValue || "any";
+      if (k === "size") paintSize();
     }
     if (relink) { closeWs(); connect(); }
     render();
