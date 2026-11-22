@@ -98,7 +98,7 @@
       <div id="kpj-panel">
         <div id="kpj-top">
           <div id="kpj-id">
-            <div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Both of you type the same party name. Only room codes travel.</span></div>
+            <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Both of you type the same party name. Only room codes travel.</span></div>
             <input id="kpj-name-input" type="text" spellcheck="false" autocomplete="off"
                    aria-label="Party name" placeholder="name your party">
           </div>
@@ -114,7 +114,7 @@
             <option value="6">4-6</option>
             <option value="10">8-10</option>
           </select>
-          <button id="kpj-go">Find a room</button>
+          <button id="kpj-go">Find room</button>
           </div>
         </div>
         <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log"></button>
@@ -213,7 +213,7 @@
 
     const fresh = id => (seenRows.has(id) ? "" : " kpj-in");
     const ids = new Set(["me", "invite"]);
-    const rows = [`<div class="kpj-who-row${fresh("me")}"><i class="kpj-dot live"></i><b>${esc(myName() || "you")}</b>
+    const rows = [`<div class="kpj-who-row kpj-self${fresh("me")}"><i class="kpj-dot live"></i><b>${esc(myName() || "you")}</b>
         <em class="kpj-me">(you)</em><span>${mine ? "in " + mine : "browsing"}</span></div>`];
     for (const [id, p] of [...peers].filter(([, p]) => now() - p.at < PEER_STALE_MS)) {
       ids.add(id);
@@ -227,7 +227,7 @@
     }
     // always offer the next seat: a party is however many of you turn up
     rows.push(`<div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i>
-      <button class="kpj-invite" type="button">Invite +</button></div>`);
+      <button class="kpj-invite" type="button">invite +</button></div>`);
     seenRows = ids;
     const html = rows.join("");
     if (el.who.dataset.sig !== html) {
@@ -237,7 +237,7 @@
     }
 
     const size = mates.length + 1;
-    el.go.textContent = "Find a room";
+    el.go.textContent = "Find room";
     el.go.disabled = !cfg.enabled || !cfg.party;
 
     // the link state is spelled out, never carried by the dot's colour alone
