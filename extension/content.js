@@ -69,7 +69,10 @@
   const myName = () => {
     const box = [...document.querySelectorAll("input")]
       .find(i => i.maxLength === 16 || /calls you/i.test(i.placeholder || ""));
-    return (box?.value || localStorage.getItem("party-name") || "").trim();
+    // inside a room the name box is gone from the DOM, so keep the last one we saw
+    const live = (box?.value || localStorage.getItem("party-name") || "").trim();
+    if (live) { try { localStorage.setItem("kpj-name", live); } catch {} return live; }
+    try { return (localStorage.getItem("kpj-name") || "").trim(); } catch { return ""; }
   };
   const livePeers = () => [...peers.values()].filter(p => now() - p.at < PEER_STALE_MS);
   const send = (type, payload) => new Promise(res => {
@@ -365,10 +368,21 @@
 
   // one quiet check on boot, so a broken link is visible before it matters
 
+  // the page reloads on every room change, so the guard lives in sessionStorage too
+  function echoed(code) {
+    if (lastBroadcast.code === code && now() - lastBroadcast.at < ECHO_MS) return true;
+    let raw = null;
+    try { raw = sessionStorage.getItem("kpj-sent"); } catch {}
+    if (!raw) return false;
+    const [c, at] = raw.split("|");
+    return c === code && now() - Number(at) < ECHO_MS;
+  }
+
   function broadcast(code, manual = false) {
     if (!cfg.enabled || !cfg.party) return;
-    if (!manual && lastBroadcast.code === code && now() - lastBroadcast.at < ECHO_MS) return;
+    if (!manual && echoed(code)) return;
     lastBroadcast = { code, at: now() };
+    try { sessionStorage.setItem("kpj-sent", `${code}|${lastBroadcast.at}`); } catch {}
     publish({ t: "join", code, from: clientId, name: myName(), ts: now() }).then(r => {
       if (r && r.ok) say(livePeers().length ? `Sent ${code} to your party.` : `Sent ${code} - nobody is listening yet.`, 6000);
       else if (r && r.offline) say("Relay is still connecting - that room will go out in a moment.", 6000);
