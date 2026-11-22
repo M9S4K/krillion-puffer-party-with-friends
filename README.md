@@ -68,6 +68,18 @@ Two things follow from that:
 To use your own relay instead, change `NTFY` in `background.js` and the `wss://` URL in
 `content.js` - any pub/sub that speaks HTTP POST and WebSocket will do.
 
+## Sharing a log
+
+The extension keeps its last 250 events - relay connects, publishes, peers
+appearing, follows, seat attempts, room searches - and survives page reloads.
+
+- **Click the status line** at the foot of the card, or press **Alt+L**, to copy the
+  whole log to the clipboard. Paste it wherever you need it.
+- The report starts with the extension version, browser, relay state and peer count.
+  Your party name is masked (first two characters and a length), so the log is safe
+  to paste in public.
+- If the clipboard is blocked, the log is printed to the console instead (F12).
+
 ## If something misbehaves
 
 - **Red dot on the badge** - no relay connection. Check the party name is set and that

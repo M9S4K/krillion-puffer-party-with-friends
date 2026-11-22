@@ -28,6 +28,41 @@
   let el = {};
 
   const now = () => Date.now();
+
+  /* ---------- event log ---------- */
+  // a small ring buffer, kept across reloads, copied out on demand
+  const LOG_MAX = 250;
+  let LOG = [];
+
+  function log(event, detail) {
+    LOG.push({ t: new Date().toISOString().slice(11, 23), e: event, d: detail ?? "" });
+    if (LOG.length > LOG_MAX) LOG = LOG.slice(-LOG_MAX);
+    try { chrome.storage?.local?.set({ kpjLog: LOG.slice(-LOG_MAX) }); } catch {}
+  }
+
+  const maskParty = p => !p ? "(unset)" : `${p.slice(0, 2)}…${p.length} chars`;
+
+  function logReport() {
+    const v = chrome.runtime?.getManifest?.()?.version ?? "?";
+    const head = [
+      `Krillion Party Joiner ${v} - diagnostic log`,
+      `when      ${new Date().toISOString()}`,
+      `browser   ${navigator.userAgent}`,
+      `page      ${location.pathname}`,
+      `party     ${maskParty(cfg.party)}`,
+      `settings  follow=${cfg.follow} autoSeat=${cfg.autoSeat} size=${cfg.size}`,
+      `relay     ws=${wsState}${now() < throttledUntil ? ` throttled ${Math.ceil((throttledUntil - now()) / 60000)}m` : ""}`,
+      `peers     ${livePeers().length} live, ${peers.size} known`,
+      "",
+    ].join("\n");
+    return head + LOG.map(r => `${r.t}  ${r.e}${r.d ? "  " + JSON.stringify(r.d) : ""}`).join("\n");
+  }
+
+  async function copyLog() {
+    const text = logReport();
+    try { await navigator.clipboard.writeText(text); toast("Log copied - paste it to whoever is debugging.", 6000); }
+    catch { console.log(text); toast("Clipboard blocked - the log is in the console (F12).", 8000); }
+  }
   const topicFor = p => "kpj-" + String(p).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
   const roomCode = (path = location.pathname) => {
     const m = ROOM_RE.exec(path);
@@ -89,7 +124,7 @@
           <button id="kpj-go">Find a room</button>
           </div>
         </div>
-        <div id="kpj-msg" role="status" aria-live="polite"></div>
+        <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log"></button>
       </div>
       </div>`;
     document.documentElement.appendChild(root);
@@ -112,6 +147,10 @@
     });
     root.querySelector("#kpj-close").onclick = () => setOpen(false);
     el.go.onclick = findRoom;
+    el.msg.onclick = copyLog;
+    document.addEventListener("keydown", e => {
+      if (e.altKey && (e.key === "l" || e.key === "L")) { e.preventDefault(); copyLog(); }
+    });
     el.size.onchange = () => chrome.storage.sync.set({ size: el.size.value });
     el.party.oninput = () => chrome.storage.sync.set({ party: el.party.value.trim() });
     el.party.onkeydown = e => { if (e.key === "Enter") el.party.blur(); };
@@ -238,9 +277,9 @@
     wsState = "wait"; render();
     try { ws = new WebSocket(`wss://ntfy.sh/${encodeURIComponent(topicFor(cfg.party))}/ws`); }
     catch { scheduleReconnect(); return; }
-    ws.onopen = () => { wsState = "on"; reconnectDelay = 1000; render(); heartbeat(); };
-    ws.onclose = () => { wsState = "off"; render(); scheduleReconnect(); };
-    ws.onerror = () => { try { ws.close(); } catch {} };
+    ws.onopen = () => { wsState = "on"; reconnectDelay = 1000; log("ws open", topicFor(cfg.party)); render(); heartbeat(true); };
+    ws.onclose = () => { wsState = "off"; log("ws close"); render(); scheduleReconnect(); };
+    ws.onerror = () => { log("ws error"); try { ws.close(); } catch {} };
     ws.onmessage = ev => {
       let frame; try { frame = JSON.parse(ev.data); } catch { return; }
       if (frame.event !== "message" || !frame.message) return;
@@ -253,6 +292,7 @@
         peers.set(m.from, { name: m.name, room: m.code || null, at: now() });
         render();
         // say hello back once, so whoever just arrived can see us
+        if (first) log("peer seen", { name: m.name, room: m.code || null });
         if (first && now() - lastSentAt > REPLY_THROTTLE_MS) heartbeat(true);
         return;
       }
@@ -274,13 +314,15 @@
     if (now() < throttledUntil) return { ok: false, throttled: true };
     const topic = topicFor(cfg.party);
     const viaWorker = await send("publish", { topic, payload });
-    if (viaWorker.ok) { lastSentAt = now(); return viaWorker; }
+    if (viaWorker.ok) { lastSentAt = now(); log("publish ok", { via: "worker", t: payload.t }); return viaWorker; }
     if (viaWorker.status === 429) {
       throttledUntil = now() + (viaWorker.retryAfter ? viaWorker.retryAfter * 1000 : 3600000);
+      log("publish 429", { retryAfter: viaWorker.retryAfter });
       return { ok: false, throttled: true, retryAfter: viaWorker.retryAfter };
     }
     const direct = await publishDirect(topic, payload);     // worker asleep, gone, or blocked
-    if (direct.ok) { lastSentAt = now(); return direct; }
+    if (direct.ok) { lastSentAt = now(); log("publish ok", { via: "page", t: payload.t }); return direct; }
+    log("publish failed", { workerStatus: viaWorker.status ?? null, dead: !!viaWorker.dead });
     return { ...direct, dead: viaWorker.dead };
   }
 
@@ -327,6 +369,7 @@
     if (roomCode() === code) return;
     if (lastHandled.code === code && now() - lastHandled.at < ECHO_MS) return;
     lastHandled = { code, at: now() };
+    log("following", { code, who });
     toast(`${who || "Your friend"} went to ${code} - following.`);
     sessionStorage.setItem("kpj-follow", code);
     location.href = `https://krillion.io/party/${code}`;
@@ -341,7 +384,7 @@
 
     const started = now();
     const tick = () => {
-      if (now() - started > SEAT_TIMEOUT_MS) return toast(`Couldn\u2019t get into ${code}. Open the room and press Take a seat.`, 0);
+      if (now() - started > SEAT_TIMEOUT_MS) return log("seat timeout", code) || toast(`Couldn\u2019t get into ${code}. Open the room and press Take a seat.`, 0);
       if (document.querySelector("iframe[src*='challenges.cloudflare.com'], dialog[open]")) { return toast("Krillion wants a quick verification \u2014 complete it and you\u2019re in.", 0);
       }
       const btn = [...document.querySelectorAll("button")]
@@ -352,6 +395,7 @@
         if (box && !box.value.trim()) { box.focus();
           return toast("Enter your name above - Krillion needs it before it seats you.", 0);
         }
+        log("seat clicked", code);
         btn.click();
         setTimeout(() => {
           if (roomCode() === code && /take a seat/i.test(document.body.innerText || "")) { toast(`Couldn\u2019t seat you in ${code}. Press Take a seat to join.`, 0);
@@ -375,6 +419,7 @@
     say("Looking for a lobby with space…");
     const r = await send("rooms", { pages: 3 });
     el.go.disabled = false;
+    log("rooms", { ok: !!r.ok, count: r.rooms?.length ?? 0 });
     if (!r.ok || !r.rooms?.length) return say("Can\u2019t read the room list. Check your connection and try again.", 8000);
     const need = Math.max(2, size);
     const want = cfg.size || "any";
@@ -437,7 +482,8 @@
 
   chrome.storage.sync.get(DEFAULTS, saved => {
     cfg = { ...DEFAULTS, ...saved };
-    chrome.storage.local.get({ clientId: "" }, s => {
+    chrome.storage.local.get({ clientId: "", kpjLog: [] }, s => {
+      if (Array.isArray(s.kpjLog)) LOG = s.kpjLog.slice(-LOG_MAX);
       clientId = s.clientId || (Math.random().toString(36).slice(2) + now().toString(36));
       if (!s.clientId) chrome.storage.local.set({ clientId });
 
@@ -447,6 +493,7 @@
       if (cfg.open || !cfg.party) el.root.classList.add("open");
       render();
       watchClicks();
+      log("boot", { party: maskParty(cfg.party), room: roomCode() });
       connect();
       setTimeout(probe, 1500);
 

@@ -104,7 +104,7 @@ def build_frame(css_text, js_text):
                     f'<div id="kpj-shelf"><span id="kpj-msg">{msg}</span></div></div>')
         else:
             body = (f'<div id="kpj-stack"><div id="kpj-panel">{inner}'
-                    f'<div id="kpj-msg">{msg}</div></div></div>')
+                    f'<button id="kpj-msg">{msg}</button></div></div>')
         return f'<div id="kpj" class="{cls}">{PILL}{body}</div>'
 
     states = [

@@ -278,6 +278,7 @@
 /* --- input modality ---------------------------------------------------- */
 @media (hover: hover) and (pointer: fine) {
   #kpj button.kpj-invite:hover { color: var(--text); }
+  #kpj button#kpj-msg:hover { color: var(--text-dim); }
   #kpj-name-input:hover:not(:focus) { border-bottom-color: var(--edge-input); }
   #kpj button#kpj-info:hover { color: var(--text); }
   #kpj button#kpj-pill:hover { border-color: var(--edge-strong); color: var(--text); }
@@ -364,12 +365,15 @@
 }
 
 /* the status line lives at the foot of the card */
-#kpj-msg {
+#kpj button#kpj-msg {
+  display: block; width: 100%; text-align: start; cursor: pointer;
   padding: 0 var(--pad) var(--pad); font-size: var(--fs-label);
   color: var(--text-faint); text-wrap: pretty; overflow-wrap: anywhere;
+  transition: color 140ms var(--ease);
 }
-#kpj-msg.kpj-empty { display: none; }
-#kpj-msg.kpj-fresh { animation: kpj-say 300ms ease-out both; }
+#kpj button#kpj-msg:empty { display: none; }
+#kpj button#kpj-msg.kpj-empty { display: none; }
+#kpj button#kpj-msg.kpj-fresh { animation: kpj-say 300ms ease-out both; }
 
 /* the invite keeps the dot's space so it lines up with the names */
 .kpj-dot.kpj-ghost { visibility: hidden; }
