@@ -156,15 +156,15 @@ CONTROLS = [
     ("lip-a",   "Top highlight",   0,   0.3,  .005,  .07,    "",    "Depth", 0),
     ("lift-a",  "Drop shadow",     0,   0.8,  .01,   .4,     "",    "Depth", 0),
     ("stroke-w",     "Stroke width",     0,    4,  .5,   1.5, "px", "Stroke", 1),
-    ("stroke-a",     "Stroke alpha",     0,    1,  .01,  .24, "",   "Stroke", 1),
+    ("stroke-a",     "Stroke alpha",     0,    1,  .01,  .50, "",   "Stroke", 1),
     ("stroke-mix",   "Gradient amount",  0,  100,   1,     0, "%",  "Stroke", 1),
     ("stroke-angle", "Gradient angle",   0,  360,   5,   195, "deg","Stroke", 1),
 ]
 
 PICKERS = [
-    ("sea",    "Sea",    "Colour", "#16233c"),
-    ("acc",    "Accent", "Colour", "#35d49a"),
-    ("stroke", "Stroke", "Stroke", "#3b4a60"),
+    ("sea",    "Sea",    "Colour", "#4d6489"),
+    ("acc",    "Accent", "Colour", "#4de3ff"),
+    ("stroke", "Stroke", "Stroke", "#1c3050"),
 ]
 
 ELEMENTS = [
@@ -372,9 +372,9 @@ HTML = """<!doctype html>
 const FRAMES = FRAMES_PLACEHOLDER;
 const PROPS = PROPS_PLACEHOLDER;
 const OVERRIDE = ELEMENTS_PLACEHOLDER;
-const SEA = [[950,.14,.028],[900,.19,.035],[850,.23,.042],[800,.27,.048],[700,.34,.052],
-             [600,.44,.056],[500,.54,.062],[400,.66,.048],[300,.78,.036],[200,.88,.024],[100,.96,.015]];
-const ACC = [[700,.58,.11],[600,.68,.13],[500,.80,.15],[400,.86,.12],[300,.91,.09],[100,.96,.05]];
+const SEA = [[950,.144,.024],[900,.190,.034],[850,.231,.047],[800,.270,.056],[700,.309,.064],
+             [600,.400,.066],[500,.500,.066],[400,.660,.061],[300,.780,.045],[200,.880,.030],[100,.956,.021]];
+const ACC = [[700,.600,.090],[600,.720,.115],[500,.849,.129],[400,.890,.080],[300,.930,.050],[100,.970,.020]];
 const el = id => document.getElementById(id);
 const sliders = [...document.querySelectorAll('#lab input[type=range]')];
 const target = el('lab-target');
@@ -433,12 +433,12 @@ function globalTokens() {
   const v = state;
   let out = '';
   const sea = hex2oklch(v['pick-sea']), acc = hex2oklch(v['pick-acc']);
-  const dSea = sea.L - .54, kSea = sea.C / .062 * v['sea-c'];
-  const dAcc = acc.L - .80, kAcc = acc.C / .150 * v['acc-c'];
+  const dSea = sea.L - .500, kSea = sea.C / .066 * v['sea-c'];
+  const dAcc = acc.L - .849, kAcc = acc.C / .129 * v['acc-c'];
   for (const [step, L, C] of SEA)
     out += `  --navy-${step}: oklch(${clamp(L + dSea, .02, .99).toFixed(3)} ${(C * kSea).toFixed(3)} ${sea.H.toFixed(0)});\\n`;
   for (const [step, L, C] of ACC)
-    out += `  --mint-${step}: oklch(${clamp(L + dAcc, .02, .99).toFixed(3)} ${(C * kAcc).toFixed(3)} ${acc.H.toFixed(0)});\\n`;
+    out += `  --cyan-${step}: oklch(${clamp(L + dAcc, .02, .99).toFixed(3)} ${(C * kAcc).toFixed(3)} ${acc.H.toFixed(0)});\\n`;
   out += px('w', v['w']) + px('r-outer', v['r-outer']) + px('r-inner', v['r-inner']) + px('pad', v['pad']);
   out += px('pad-head', v['pad-head']) + px('gap-row', v['gap-row']) + px('cta-h', v['cta-h']);
   out += rem('fs-body', v['fs-body']) + rem('fs-label', v['fs-label']) + rem('fs-kicker', v['fs-kicker']);

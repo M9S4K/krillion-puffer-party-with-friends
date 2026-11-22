@@ -4,13 +4,13 @@
 
 #kpj, #kpj-toast {
   /* --- primitives: one neutral ramp, one accent ramp, hue held end to end --- */
-  --navy-950: #040b16;  --navy-900: #081425;  --navy-850: #0d1c31;
-  --navy-800: #122440;  --navy-700: #1b3557;  --navy-600: #2a4a73;
-  --navy-500: #3f6391;  --navy-400: #6d8cb4;  --navy-300: #9db5d3;
-  --navy-200: #c7d9ee;  --navy-100: #e9f3ff;
-  --mint-700: #1c8f67;  --mint-600: #28ad7e;  --mint-500: #35d49a;
-  --mint-400: #5fe0b1;  --mint-300: #9eeed0;  --mint-100: #d7fff0;
-  --gold-500: #f3c457;  --coral-500: #ef6b6b;
+  --navy-950: #050a14;  --navy-900: #0b1423;  --navy-850: #101d33;
+  --navy-800: #162642;  --navy-700: #1c3050;  --navy-600: #32486b;
+  --navy-500: #4d6489;  --navy-400: #7d93b8;  --navy-300: #a7b8d5;
+  --navy-200: #ccd8ec;  --navy-100: #e8f1ff;
+  --cyan-700: #2f8ea0;  --cyan-600: #31b7cf;  --cyan-500: #4de3ff;
+  --cyan-400: #9be9fa;  --cyan-300: #c3f1fc;  --cyan-100: #e7f9fd;
+  --gold-500: #ffd166;  --coral-500: #ff5d8f;
 
   /* --- semantic: every component reads these, never a primitive ---------- */
   --surface: var(--navy-900);
@@ -18,11 +18,11 @@
   --surface-raised: var(--navy-800);
   --surface-sunken: var(--navy-950);
   --stroke-w: 1.5px;              /* stroke width, everywhere */
-  --stroke-l: .31;              /* stroke lightness */
-  --stroke-c: .03;             /* stroke chroma */
-  --stroke-h: 248;              /* stroke hue */
-  --stroke-a: .24;              /* stroke alpha */
-  --stroke-h2: 0;             /* second hue, for the gradient stroke */
+  --stroke-l: .309;              /* stroke lightness */
+  --stroke-c: .064;             /* stroke chroma */
+  --stroke-h: 260;              /* stroke hue */
+  --stroke-a: .5;              /* stroke alpha */
+  --stroke-h2: 213;             /* second hue, for the gradient stroke */
   --stroke-mix: 0%;             /* 0% = flat stroke, 100% = full gradient */
   --stroke-angle: 195deg;
   --corner-k: 1;                /* 2 = round, 3-5 = squircle, >5 = flatter */
@@ -32,13 +32,13 @@
             color-mix(in oklab, var(--stroke-2) var(--stroke-mix), var(--stroke-1)));
   --border-subtle: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / calc(var(--stroke-a) * .78));
   --border: var(--stroke-1);
-  --border-input: var(--navy-500);
+  --border-input: var(--navy-400);
   --text: var(--navy-100);
   --text-dim: var(--navy-300);
   --text-faint: var(--navy-400);
-  --accent: var(--mint-500);
-  --accent-deep: var(--mint-700);
-  --accent-ink: var(--mint-100);
+  --accent: var(--cyan-500);
+  --accent-deep: var(--cyan-700);
+  --accent-ink: var(--cyan-100);
   --warn: var(--gold-500);
   --bad: var(--coral-500);
 
@@ -75,16 +75,16 @@
 }
 @supports (color: oklch(0.5 0.1 250)) {
   #kpj, #kpj-toast {
-    --navy-950: oklch(.14 .028 250);  --navy-900: oklch(.19 .035 250);
-    --navy-850: oklch(.23 .042 250);  --navy-800: oklch(.27 .048 250);
-    --navy-700: oklch(.34 .052 250);  --navy-600: oklch(.44 .056 250);
-    --navy-500: oklch(.54 .062 250);  --navy-400: oklch(.66 .048 250);
-    --navy-300: oklch(.78 .036 250);  --navy-200: oklch(.88 .024 250);
-    --navy-100: oklch(.96 .015 250);
-    --mint-700: oklch(.58 .11 160);   --mint-600: oklch(.68 .13 160);
-    --mint-500: oklch(.80 .15 160);   --mint-400: oklch(.86 .12 160);
-    --mint-300: oklch(.91 .09 160);   --mint-100: oklch(.96 .05 160);
-    --gold-500: oklch(.83 .13 85);    --coral-500: oklch(.70 .16 22);
+    --navy-950: oklch(.144 .024 260);  --navy-900: oklch(.190 .034 260);
+    --navy-850: oklch(.231 .047 260);  --navy-800: oklch(.270 .056 260);
+    --navy-700: oklch(.309 .064 260);  --navy-600: oklch(.400 .066 260);
+    --navy-500: oklch(.500 .066 260);  --navy-400: oklch(.660 .061 260);
+    --navy-300: oklch(.780 .045 260);  --navy-200: oklch(.880 .030 260);
+    --navy-100: oklch(.956 .021 260);
+    --cyan-700: oklch(.600 .090 213);  --cyan-600: oklch(.720 .115 213);
+    --cyan-500: oklch(.849 .129 213);  --cyan-400: oklch(.890 .080 213);
+    --cyan-300: oklch(.930 .050 213);  --cyan-100: oklch(.970 .020 213);
+    --gold-500: oklch(.880 .135 86);   --coral-500: oklch(.703 .200 5);
   }
 }
 
