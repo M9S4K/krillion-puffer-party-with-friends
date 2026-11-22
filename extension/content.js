@@ -511,7 +511,7 @@
     const started = now();
     const tick = () => {
       if (now() - started > SEAT_TIMEOUT_MS) return log("seat timeout", code) || toast(`Couldn\u2019t get into ${code}. Open the room and press Take a seat.`, 0);
-      if (document.querySelector("iframe[src*='challenges.cloudflare.com'], dialog[open]")) { return toast("Krillion wants a quick verification \u2014 complete it and you\u2019re in.", 0);
+      if (document.querySelector("iframe[src*='challenges.cloudflare.com'], dialog[open]")) { return toast("Krillion wants a quick verification - complete it and you\u2019re in.", 0);
       }
       const btn = [...document.querySelectorAll("button")]
         .find(b => /take a seat/i.test(b.textContent || "") && !b.disabled);
