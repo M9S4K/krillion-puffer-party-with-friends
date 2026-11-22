@@ -8,8 +8,8 @@
   --navy-800: #162642;  --navy-700: #1c3050;  --navy-600: #32486b;
   --navy-500: #4d6489;  --navy-400: #7d93b8;  --navy-300: #a7b8d5;
   --navy-200: #ccd8ec;  --navy-100: #e8f1ff;
-  --cyan-700: #2f8ea0;  --cyan-600: #31b7cf;  --cyan-500: #4de3ff;
-  --cyan-400: #9be9fa;  --cyan-300: #c3f1fc;  --cyan-100: #e7f9fd;
+  --mint-700: #35a472;  --mint-600: #31d08e;  --mint-500: #4effb2;
+  --mint-400: #a2fdcd;  --mint-300: #cdfde5;  --mint-100: #edfdf4;
   --gold-500: #ffd166;  --coral-500: #ff5d8f;
 
   /* --- semantic: every component reads these, never a primitive ---------- */
@@ -18,11 +18,11 @@
   --surface-raised: var(--navy-800);
   --surface-sunken: var(--navy-950);
   --stroke-w: 1.5px;              /* stroke width, everywhere */
-  --stroke-l: .309;              /* stroke lightness */
+  --stroke-l: .310;              /* stroke lightness */
   --stroke-c: .064;             /* stroke chroma */
-  --stroke-h: 260;              /* stroke hue */
+  --stroke-h: 259;              /* stroke hue */
   --stroke-a: .5;              /* stroke alpha */
-  --stroke-h2: 213;             /* second hue, for the gradient stroke */
+  --stroke-h2: 79;             /* second hue, for the gradient stroke */
   --stroke-mix: 0%;             /* 0% = flat stroke, 100% = full gradient */
   --stroke-angle: 195deg;
   --corner-k: 1;                /* 2 = round, 3-5 = squircle, >5 = flatter */
@@ -36,9 +36,9 @@
   --text: var(--navy-100);
   --text-dim: var(--navy-300);
   --text-faint: var(--navy-400);
-  --accent: var(--cyan-500);
-  --accent-deep: var(--cyan-700);
-  --accent-ink: var(--cyan-100);
+  --accent: var(--mint-500);
+  --accent-deep: var(--mint-700);
+  --accent-ink: var(--mint-100);
   --warn: var(--gold-500);
   --bad: var(--coral-500);
 
@@ -81,9 +81,9 @@
     --navy-500: oklch(.500 .066 260);  --navy-400: oklch(.660 .061 260);
     --navy-300: oklch(.780 .045 260);  --navy-200: oklch(.880 .030 260);
     --navy-100: oklch(.956 .021 260);
-    --cyan-700: oklch(.600 .090 213);  --cyan-600: oklch(.720 .115 213);
-    --cyan-500: oklch(.849 .129 213);  --cyan-400: oklch(.890 .080 213);
-    --cyan-300: oklch(.930 .050 213);  --cyan-100: oklch(.970 .020 213);
+    --mint-700: oklch(.643 .125 160);  --mint-600: oklch(.763 .160 160);
+    --mint-500: oklch(.892 .179 160);  --mint-400: oklch(.933 .100 160);
+    --mint-300: oklch(.973 .055 160);  --mint-100: oklch(.990 .022 160);
     --gold-500: oklch(.880 .135 86);   --coral-500: oklch(.703 .200 5);
   }
 }
@@ -373,3 +373,6 @@
 
 /* the invite keeps the dot's space so it lines up with the names */
 .kpj-dot.kpj-ghost { visibility: hidden; }
+
+/* the key is outlined in black, so it reads as a sticker on the card */
+#kpj #kpj-cta { border-color: #000; }
