@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Krillion Puffer Party With Friends",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "When one of you joins a Puffer Party room, the other is pulled into the same room automatically.",
   "permissions": [
     "storage"
@@ -25,17 +25,6 @@
         "content.css"
       ],
       "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "fonts/pixelify-sans-latin.woff2",
-        "fonts/vt323-latin.woff2"
-      ],
-      "matches": [
-        "https://krillion.io/*"
-      ]
     }
   ],
   "action": {

@@ -13,7 +13,7 @@
 <div id="kpj-stack"><div id="kpj-panel">
   <div id="kpj-top">
     <div id="kpj-id">
-      <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Make up any name, then tell your friends to type it exactly. Same name, same party. Only room codes travel between you.</span></div>
+      <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Type out any name and ask your friends to type it in exactly to join the same party</span></div>
       <input id="kpj-name-input" type="text" value="puffa-trench-8471" aria-label="Party name" placeholder="name your party">
     </div>
     <button id="kpj-close" aria-label="Hide panel"><svg viewBox="0 0 16 16"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button>
@@ -42,7 +42,7 @@ const invite=`<div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i
 const STATES={
   "alone":()=>{who.innerHTML=row("puffa",1,"browsing")+invite;goTxt.textContent="Find room";go.dataset.hold="";go.disabled=false;msg.textContent="Linked - waiting for your friend";},
   "waiting":()=>{who.innerHTML=row("puffa",1,"browsing")+row("Finum",0,"playing")+invite;goTxt.textContent="Find room";go.dataset.hold="";go.disabled=false;msg.textContent="Linked · puffa-trench-8471";},
-  "together":()=>{who.innerHTML=row("puffa",1,"in GNFS")+row("Finum",0,"with you","kpj-same")+invite;goTxt.textContent="Hold to move";go.dataset.hold="1";go.disabled=false;msg.textContent="GNFS · 4/6 - you are both in.";},
+  "together":()=>{who.innerHTML=row("puffa",1,"in GNFS")+row("Finum",0,"","kpj-same")+invite;goTxt.textContent="Hold to move";go.dataset.hold="1";go.disabled=false;msg.textContent="GNFS · 4/6 - you are both in.";},
   "holding":()=>{STATES.together();go.classList.add("kpj-holding");},
   "menu":()=>{STATES.alone();menu.hidden=false;},
   "no party":()=>{who.innerHTML=row("puffa",1,"browsing")+invite;document.querySelector("#kpj-name-input").value="";goTxt.textContent="Find room";go.dataset.hold="";go.disabled=true;msg.textContent="Name your party above, same on both machines.";},

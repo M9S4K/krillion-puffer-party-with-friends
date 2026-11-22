@@ -110,7 +110,7 @@
       <div id="kpj-panel">
         <div id="kpj-top">
           <div id="kpj-id">
-            <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Make up any name, then tell your friends to type it exactly. Same name, same party. Only room codes travel between you.</span></div>
+            <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Type out any name and ask your friends to type it in exactly to join the same party</span></div>
             <input id="kpj-name-input" type="text" spellcheck="false" autocomplete="off"
                    aria-label="Party name" placeholder="name your party">
           </div>
@@ -314,7 +314,7 @@
     for (const [id, p] of [...peers].filter(([, p]) => now() - p.at < PEER_STALE_MS)) {
       ids.add(id);
       const together = mine && p.room === mine;
-      const status = together ? "with you"
+      const status = together ? ""                 // you can see you are together; the key says so too
         : p.room ? (mine ? "too late" : "playing")
         : "browsing";
       rows.push(`<div class="kpj-who-row${together ? " kpj-same" : ""}${fresh(id)}">
