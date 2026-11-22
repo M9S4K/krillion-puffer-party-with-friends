@@ -9,14 +9,13 @@
   const ROOM_RE = /^\/party\/([A-Za-z]{4})\/?$/;
   const ECHO_MS = 25000;
   const SEAT_TIMEOUT_MS = 15000;
-  // ntfy.sh allows ~250 messages a day per IP, so presence is event-driven
-  const HEARTBEAT_MS = 10 * 60000;      // keepalive, not a pulse
-  const PEER_STALE_MS = 26 * 60000;     // two missed keepalives
+  const HEARTBEAT_MS = 20000;           // the broker has no daily cap, so presence can be prompt
+  const PEER_STALE_MS = 70000;          // three missed keepalives
   const REPLY_THROTTLE_MS = 60000;
 
   let cfg = { ...DEFAULTS };
   let clientId = "";
-  let ws = null, wsState = "off", reconnectAt = 0, reconnectDelay = 1000;
+  let ws = null, wsState = "off", reconnectAt = 0, reconnectDelay = 1000, pinger = null;
   let lastBroadcast = { code: null, at: 0 };
   let lastHandled = { code: null, at: 0 };
   let lastPath = location.pathname;
@@ -24,7 +23,6 @@
   let seenRows = new Set();         // rows already on screen, so only new ones animate
   let lastSig = "";                 // what we last told the party
   let lastSentAt = 0;
-  let throttledUntil = 0;           // set when the relay says we are over quota
   let el = {};
 
   const now = () => Date.now();
@@ -51,7 +49,7 @@
       `page      ${location.pathname}`,
       `party     ${maskParty(cfg.party)}`,
       `settings  follow=${cfg.follow} autoSeat=${cfg.autoSeat} size=${cfg.size}`,
-      `relay     ws=${wsState}${now() < throttledUntil ? ` throttled ${Math.ceil((throttledUntil - now()) / 60000)}m` : ""}`,
+      `relay     ${wsState} via ${BROKERS[brokerIdx % BROKERS.length]}`,
       `peers     ${livePeers().length} live, ${peers.size} known`,
       "",
     ].join("\n");
@@ -63,7 +61,7 @@
     try { await navigator.clipboard.writeText(text); toast("Log copied - paste it to whoever is debugging.", 6000); }
     catch { console.log(text); toast("Clipboard blocked - the log is in the console (F12).", 8000); }
   }
-  const topicFor = p => "kpj-" + String(p).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+  const topicFor = p => "kpj/" + String(p).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
   const roomCode = (path = location.pathname) => {
     const m = ROOM_RE.exec(path);
     return m ? m[1].toUpperCase() : null;
@@ -84,15 +82,7 @@
     } catch { res({ ok: false, dead: true }); }
   });
 
-  // ntfy allows cross-origin posts, so the page can publish even with no worker behind it
-  async function publishDirect(topic, payload) {
-    try {
-      const r = await fetch("https://ntfy.sh/" + encodeURIComponent(topic), {
-        method: "POST", body: JSON.stringify(payload), cache: "no-store"
-      });
-      return { ok: r.ok, status: r.status };
-    } catch { return { ok: false }; }
-  }
+
 
   /* ---------- panel ---------- */
 
@@ -269,23 +259,64 @@
 
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+
+  /* ---------- relay: MQTT 3.1.1 over WebSocket ---------- */
+  // Public brokers, no account. Fair-use rate limits, no daily message quota.
+  const BROKERS = ["wss://broker.hivemq.com:8884/mqtt", "wss://test.mosquitto.org:8081/mqtt"];
+  let brokerIdx = 0;
+
+  const mqStr = str => { const b = new TextEncoder().encode(str); return [b.length >> 8 & 255, b.length & 255, ...b]; };
+  const mqLen = n => { const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; o.push(d); } while (n > 0); return o; };
+  const mqPkt = (type, flags, body) => new Uint8Array([type << 4 | flags, ...mqLen(body.length), ...body]);
+
+  function mqDecode(buf) {
+    const d = new Uint8Array(buf), type = d[0] >> 4;
+    if (type !== 3) return { type };
+    let i = 1, mult = 1, rl = 0, b;
+    do { b = d[i++]; rl += (b & 127) * mult; mult *= 128; } while (b & 128);
+    const end = i + rl;
+    const tl = (d[i] << 8) | d[i + 1];
+    const topic = new TextDecoder().decode(d.slice(i + 2, i + 2 + tl));
+    const text = new TextDecoder().decode(d.slice(i + 2 + tl, end));
+    return { type, topic, text };
+  }
+
   /* ---------- relay ---------- */
 
   function connect() {
     if (!cfg.enabled || !cfg.party) { closeWs(); return; }
     if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
     wsState = "wait"; render();
-    try { ws = new WebSocket(`wss://ntfy.sh/${encodeURIComponent(topicFor(cfg.party))}/ws`); }
+    const url = BROKERS[brokerIdx % BROKERS.length];
+    try { ws = new WebSocket(url, "mqtt"); ws.binaryType = "arraybuffer"; }
     catch { scheduleReconnect(); return; }
-    ws.onopen = () => { wsState = "on"; reconnectDelay = 1000; log("ws open", topicFor(cfg.party)); render(); heartbeat(true); };
-    ws.onclose = () => { wsState = "off"; log("ws close"); render(); scheduleReconnect(); };
-    ws.onerror = () => { log("ws error"); try { ws.close(); } catch {} };
+
+    ws.onopen = () => {
+      // CONNECT: clean session, 60s keepalive
+      ws.send(mqPkt(1, 0, [...mqStr("MQTT"), 4, 2, 0, 60, ...mqStr("kpj" + clientId.slice(0, 12))]));
+    };
+    ws.onclose = () => {
+      wsState = "off"; log("relay closed", url);
+      clearInterval(pinger); pinger = null;
+      brokerIdx++;                                   // try the other broker next time
+      render(); scheduleReconnect();
+    };
+    ws.onerror = () => { log("relay error", url); try { ws.close(); } catch {} };
     ws.onmessage = ev => {
-      let frame; try { frame = JSON.parse(ev.data); } catch { return; }
-      if (frame.event !== "message" || !frame.message) return;
-      if (frame.time && now() - frame.time * 1000 > 60000) return;
-      let m; try { m = JSON.parse(frame.message); } catch { return; }
+      const f = mqDecode(ev.data);
+      if (f.type === 2) {                            // CONNACK -> subscribe
+        ws.send(mqPkt(8, 2, [0, 1, ...mqStr(topicFor(cfg.party)), 0]));
+        wsState = "on"; reconnectDelay = 1000;
+        log("relay open", { broker: url, topic: topicFor(cfg.party) });
+        clearInterval(pinger);
+        pinger = setInterval(() => { try { ws.send(mqPkt(12, 0, [])); } catch {} }, 45000);
+        render(); heartbeat(true);
+        return;
+      }
+      if (f.type !== 3 || !f.text) return;
+      let m; try { m = JSON.parse(f.text); } catch { return; }
       if (!m || m.from === clientId) return;
+      if (m.ts && now() - m.ts > 120000) return;    // ignore anything stale
 
       if (m.t === "hi") {
         const first = !peers.has(m.from);
@@ -304,26 +335,24 @@
     };
   }
 
-  function closeWs() { try { ws && ws.close(); } catch {} ws = null; wsState = "off"; render(); }
+  function closeWs() { clearInterval(pinger); pinger = null; try { ws && ws.close(); } catch {} ws = null; wsState = "off"; render(); }
   function scheduleReconnect() {
     reconnectDelay = Math.min(reconnectDelay * 2, 15000);
     reconnectAt = now() + reconnectDelay;
   }
 
-  async function publish(payload) {
-    if (now() < throttledUntil) return { ok: false, throttled: true };
-    const topic = topicFor(cfg.party);
-    const viaWorker = await send("publish", { topic, payload });
-    if (viaWorker.ok) { lastSentAt = now(); log("publish ok", { via: "worker", t: payload.t }); return viaWorker; }
-    if (viaWorker.status === 429) {
-      throttledUntil = now() + (viaWorker.retryAfter ? viaWorker.retryAfter * 1000 : 3600000);
-      log("publish 429", { retryAfter: viaWorker.retryAfter });
-      return { ok: false, throttled: true, retryAfter: viaWorker.retryAfter };
+  function publish(payload) {
+    if (!ws || ws.readyState !== 1 || wsState !== "on") return Promise.resolve({ ok: false, offline: true });
+    try {
+      const body = new TextEncoder().encode(JSON.stringify(payload));
+      ws.send(mqPkt(3, 0, [...mqStr(topicFor(cfg.party)), ...body]));
+      lastSentAt = now();
+      log("sent", { t: payload.t, code: payload.code || null });
+      return Promise.resolve({ ok: true });
+    } catch (e) {
+      log("send failed", String(e));
+      return Promise.resolve({ ok: false });
     }
-    const direct = await publishDirect(topic, payload);     // worker asleep, gone, or blocked
-    if (direct.ok) { lastSentAt = now(); log("publish ok", { via: "page", t: payload.t }); return direct; }
-    log("publish failed", { workerStatus: viaWorker.status ?? null, dead: !!viaWorker.dead });
-    return { ...direct, dead: viaWorker.dead };
   }
 
   function heartbeat(force = false) {
@@ -335,20 +364,6 @@
   }
 
   // one quiet check on boot, so a broken link is visible before it matters
-  async function probe() {
-    if (!cfg.party) return;
-    const r = await publish({ t: "hi", from: clientId, name: myName(), code: roomCode(), ts: now() });
-    lastSig = `${myName()}|${roomCode() || ""}`;
-    if (r.ok) return;
-    if (r.throttled) say(relayWait(r.retryAfter), 14000);
-    else if (r.dead) say("Extension was updated. Reload this page to relink.", 12000);
-    else say("Can\u2019t reach ntfy.sh - check for an ad blocker.", 12000);
-  }
-
-  const relayWait = secs => {
-    const h = Math.ceil((secs || 3600) / 3600);
-    return `Relay is over its daily limit. It frees up in about ${h} hour${h > 1 ? "s" : ""}.`;
-  };
 
   function broadcast(code, manual = false) {
     if (!cfg.enabled || !cfg.party) return;
@@ -356,9 +371,8 @@
     lastBroadcast = { code, at: now() };
     publish({ t: "join", code, from: clientId, name: myName(), ts: now() }).then(r => {
       if (r && r.ok) say(livePeers().length ? `Sent ${code} to your party.` : `Sent ${code} - nobody is listening yet.`, 6000);
-      else if (r && r.throttled) say(relayWait(r.retryAfter), 12000);
-      else if (r && r.dead) say("Extension was updated. Reload this page to relink.", 10000);
-      else say("Can\u2019t reach ntfy.sh. An ad blocker or your network may be blocking it.", 9000);
+      else if (r && r.offline) say("Relay is still connecting - that room will go out in a moment.", 6000);
+      else say("Could not send to the relay. The log (Alt+L) has the detail.", 9000);
     });
   }
 
@@ -495,7 +509,6 @@
       watchClicks();
       log("boot", { party: maskParty(cfg.party), room: roomCode() });
       connect();
-      setTimeout(probe, 1500);
 
       const code = roomCode();
       if (code) { if (sessionStorage.getItem("kpj-follow") !== code) broadcast(code); autoSeat(); }

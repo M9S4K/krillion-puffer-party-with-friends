@@ -1,17 +1,6 @@
-// Network work that a content script is not allowed to do cross-origin.
+// The one request a content script cannot make: party.krillion.io sends no CORS header.
 
-const NTFY = "https://ntfy.sh/";
 const ROOMS = "https://party.krillion.io/rooms";
-
-async function publish(topic, payload) {
-  const res = await fetch(NTFY + encodeURIComponent(topic), {
-    method: "POST",
-    body: JSON.stringify(payload),
-    cache: "no-store"
-  });
-  // ntfy.sh caps free publishing per IP per day; pass the wait back up
-  return { ok: res.ok, status: res.status, retryAfter: Number(res.headers.get("retry-after")) || 0 };
-}
 
 async function rooms(pages = 2) {
   const out = new Map();
@@ -29,10 +18,6 @@ async function rooms(pages = 2) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
-  if (msg?.type === "publish") {
-    publish(msg.topic, msg.payload).then(reply).catch(e => reply({ ok: false, error: String(e) }));
-    return true;
-  }
   if (msg?.type === "rooms") {
     rooms(msg.pages || 2).then(r => reply({ ok: true, rooms: r }))
       .catch(e => reply({ ok: false, error: String(e), rooms: [] }));
