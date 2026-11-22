@@ -89,7 +89,7 @@
 }
 
 #kpj {
-  position: fixed; inset-inline-start: 14px; bottom: 14px; z-index: 2147483000;
+  position: fixed; inset-inline-end: 14px; top: 14px; z-index: 2147483000;
   width: var(--w); max-width: calc(100vw - 28px);
   color: var(--text);
   font: var(--fs-body)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -106,7 +106,7 @@
 /* --- collapsed pill ---------------------------------------------------- */
 #kpj button#kpj-pill {
   display: flex; align-items: center; gap: 8px;
-  width: max-content; max-width: 100%; min-height: 32px;
+  width: max-content; max-width: 100%; margin-inline-start: auto; min-height: 32px;
   padding: 0 14px 0 11px; border-radius: 999px;
   border: var(--stroke-w) solid transparent;
   font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;
@@ -123,7 +123,7 @@
   display: none; position: relative; z-index: 2; border-radius: var(--r-outer);
   border: var(--stroke-w) solid transparent;
   overscroll-behavior: contain;
-  transform-origin: bottom left;           /* opens from the pill, not the centre */
+  transform-origin: top right;             /* opens from the pill, not the centre */
 }
 #kpj.open #kpj-panel {
   display: block;
@@ -131,11 +131,11 @@
   transition: opacity 250ms var(--ease), transform 250ms var(--ease), display 250ms allow-discrete;
 }
 @starting-style {
-  #kpj.open #kpj-panel { opacity: 0; transform: scale(.98) translateY(8px); }
+  #kpj.open #kpj-panel { opacity: 0; transform: scale(.98) translateY(-8px); }
 }
 /* exit: shorter and smaller than the enter */
 #kpj.open.closing #kpj-panel {
-  opacity: 0; transform: scale(.99) translateY(4px);
+  opacity: 0; transform: scale(.99) translateY(-4px);
   transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exits run shorter */
 }
 
@@ -176,12 +176,12 @@
 
 /* info tooltip */
 #kpj-tip {
-  position: absolute; bottom: calc(100% + 7px); inset-inline-start: -2px; z-index: 4;
+  position: absolute; top: calc(100% + 7px); inset-inline-start: -2px; z-index: 4;
   width: 186px; padding: 7px 9px; border-radius: var(--r-inner);
   border: var(--stroke-w) solid transparent; color: var(--text-dim);
   font-size: var(--fs-label); line-height: 1.4; text-wrap: pretty;
-  transform-origin: bottom left;
-  opacity: 0; visibility: hidden; transform: scale(.97) translateY(2px);
+  transform-origin: top left;
+  opacity: 0; visibility: hidden; transform: scale(.97) translateY(-2px);
   transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 150ms;
   pointer-events: none;
 }
@@ -260,7 +260,7 @@
 
 /* --- toast ------------------------------------------------------------- */
 #kpj-toast {
-  position: fixed; inset-inline-start: 14px; bottom: 60px; z-index: 2147483001;
+  position: fixed; inset-inline-end: 14px; bottom: 14px; z-index: 2147483001;
   pointer-events: none; max-width: 272px;
   padding: 9px 12px; border-radius: var(--r-inner);
   background: var(--bg); border: 1px solid var(--edge); color: var(--text);
@@ -293,7 +293,7 @@
   @starting-style { #kpj.open #kpj-panel { opacity: 0; transform: none; } }
 }
 
-@media (max-width: 720px) { #kpj { inset-inline-start: 8px; bottom: 8px; width: calc(var(--w) - 32px); } }
+@media (max-width: 720px) { #kpj { inset-inline-end: 8px; top: 8px; width: calc(var(--w) - 48px); } }
 
 /* --- depth: a little glass and a little moulding ------------------------ */
 

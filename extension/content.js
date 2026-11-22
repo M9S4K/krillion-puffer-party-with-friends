@@ -9,8 +9,10 @@
   const ROOM_RE = /^\/party\/([A-Za-z]{4})\/?$/;
   const ECHO_MS = 25000;
   const SEAT_TIMEOUT_MS = 15000;
-  const HEARTBEAT_MS = 8000;
-  const PEER_STALE_MS = 26000;
+  // ntfy.sh allows ~250 messages a day per IP, so presence is event-driven
+  const HEARTBEAT_MS = 10 * 60000;      // keepalive, not a pulse
+  const PEER_STALE_MS = 26 * 60000;     // two missed keepalives
+  const REPLY_THROTTLE_MS = 60000;
 
   let cfg = { ...DEFAULTS };
   let clientId = "";
@@ -20,6 +22,9 @@
   let lastPath = location.pathname;
   let peers = new Map();            // id -> { name, room, at }
   let seenRows = new Set();         // rows already on screen, so only new ones animate
+  let lastSig = "";                 // what we last told the party
+  let lastSentAt = 0;
+  let throttledUntil = 0;           // set when the relay says we are over quota
   let el = {};
 
   const now = () => Date.now();
@@ -35,9 +40,24 @@
   };
   const livePeers = () => [...peers.values()].filter(p => now() - p.at < PEER_STALE_MS);
   const send = (type, payload) => new Promise(res => {
-    try { chrome.runtime.sendMessage({ type, ...payload }, r => { void chrome.runtime.lastError; res(r || {}); }); }
-    catch { res({}); }
+    try {
+      if (!chrome.runtime?.id) return res({ ok: false, dead: true });   // extension reloaded under us
+      chrome.runtime.sendMessage({ type, ...payload }, r => {
+        if (chrome.runtime.lastError) return res({ ok: false, dead: true });
+        res(r || { ok: false });
+      });
+    } catch { res({ ok: false, dead: true }); }
   });
+
+  // ntfy allows cross-origin posts, so the page can publish even with no worker behind it
+  async function publishDirect(topic, payload) {
+    try {
+      const r = await fetch("https://ntfy.sh/" + encodeURIComponent(topic), {
+        method: "POST", body: JSON.stringify(payload), cache: "no-store"
+      });
+      return { ok: r.ok, status: r.status };
+    } catch { return { ok: false }; }
+  }
 
   /* ---------- panel ---------- */
 
@@ -229,8 +249,11 @@
       if (!m || m.from === clientId) return;
 
       if (m.t === "hi") {
+        const first = !peers.has(m.from);
         peers.set(m.from, { name: m.name, room: m.code || null, at: now() });
         render();
+        // say hello back once, so whoever just arrived can see us
+        if (first && now() - lastSentAt > REPLY_THROTTLE_MS) heartbeat(true);
         return;
       }
       if (m.t === "join" && typeof m.code === "string") {
@@ -247,12 +270,43 @@
     reconnectAt = now() + reconnectDelay;
   }
 
-  const publish = payload => send("publish", { topic: topicFor(cfg.party), payload });
+  async function publish(payload) {
+    if (now() < throttledUntil) return { ok: false, throttled: true };
+    const topic = topicFor(cfg.party);
+    const viaWorker = await send("publish", { topic, payload });
+    if (viaWorker.ok) { lastSentAt = now(); return viaWorker; }
+    if (viaWorker.status === 429) {
+      throttledUntil = now() + (viaWorker.retryAfter ? viaWorker.retryAfter * 1000 : 3600000);
+      return { ok: false, throttled: true, retryAfter: viaWorker.retryAfter };
+    }
+    const direct = await publishDirect(topic, payload);     // worker asleep, gone, or blocked
+    if (direct.ok) { lastSentAt = now(); return direct; }
+    return { ...direct, dead: viaWorker.dead };
+  }
 
-  function heartbeat() {
+  function heartbeat(force = false) {
     if (!cfg.enabled || !cfg.party || wsState !== "on") return;
+    const sig = `${myName()}|${roomCode() || ""}`;
+    if (!force && sig === lastSig && now() - lastSentAt < HEARTBEAT_MS) return;
+    lastSig = sig;
     publish({ t: "hi", from: clientId, name: myName(), code: roomCode(), ts: now() });
   }
+
+  // one quiet check on boot, so a broken link is visible before it matters
+  async function probe() {
+    if (!cfg.party) return;
+    const r = await publish({ t: "hi", from: clientId, name: myName(), code: roomCode(), ts: now() });
+    lastSig = `${myName()}|${roomCode() || ""}`;
+    if (r.ok) return;
+    if (r.throttled) say(relayWait(r.retryAfter), 14000);
+    else if (r.dead) say("Extension was updated. Reload this page to relink.", 12000);
+    else say("Can\u2019t reach ntfy.sh - check for an ad blocker.", 12000);
+  }
+
+  const relayWait = secs => {
+    const h = Math.ceil((secs || 3600) / 3600);
+    return `Relay is over its daily limit. It frees up in about ${h} hour${h > 1 ? "s" : ""}.`;
+  };
 
   function broadcast(code, manual = false) {
     if (!cfg.enabled || !cfg.party) return;
@@ -260,7 +314,9 @@
     lastBroadcast = { code, at: now() };
     publish({ t: "join", code, from: clientId, name: myName(), ts: now() }).then(r => {
       if (r && r.ok) say(livePeers().length ? `Sent ${code} to your party.` : `Sent ${code} - nobody is listening yet.`, 6000);
-      else say("Can\u2019t reach the relay. Check your connection - it keeps retrying.", 8000);
+      else if (r && r.throttled) say(relayWait(r.retryAfter), 12000);
+      else if (r && r.dead) say("Extension was updated. Reload this page to relink.", 10000);
+      else say("Can\u2019t reach ntfy.sh. An ad blocker or your network may be blocking it.", 9000);
     });
   }
 
@@ -392,6 +448,7 @@
       render();
       watchClicks();
       connect();
+      setTimeout(probe, 1500);
 
       const code = roomCode();
       if (code) { if (sessionStorage.getItem("kpj-follow") !== code) broadcast(code); autoSeat(); }
@@ -418,5 +475,5 @@
     if (cfg.enabled && cfg.party && (!ws || ws.readyState > 1) && now() > reconnectAt) connect();
   }, 300);
 
-  setInterval(() => { heartbeat(); render(); }, HEARTBEAT_MS);
+  setInterval(() => { heartbeat(); render(); }, 60000);   // heartbeat() decides if it actually sends
 })();

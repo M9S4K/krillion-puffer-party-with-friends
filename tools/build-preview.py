@@ -37,7 +37,7 @@ js = VERSIONS[0][3]
 def build_frame(css_text, js_text):
     """One self-contained document: a version's stylesheet around its own markup."""
     preview_css = css_text.replace(
-        "  position: fixed; inset-inline-start: 14px; bottom: 14px; z-index: 2147483000;\n"
+        "  position: fixed; inset-inline-end: 14px; top: 14px; z-index: 2147483000;\n"
         "  width: var(--w); max-width: calc(100vw - 28px);",
         "  position: relative; z-index: 1;\n  width: var(--w);")
 

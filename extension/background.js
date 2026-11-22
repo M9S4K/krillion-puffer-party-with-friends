@@ -9,7 +9,8 @@ async function publish(topic, payload) {
     body: JSON.stringify(payload),
     cache: "no-store"
   });
-  return { ok: res.ok, status: res.status };
+  // ntfy.sh caps free publishing per IP per day; pass the wait back up
+  return { ok: res.ok, status: res.status, retryAfter: Number(res.headers.get("retry-after")) || 0 };
 }
 
 async function rooms(pages = 2) {
