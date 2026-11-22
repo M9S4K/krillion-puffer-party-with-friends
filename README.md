@@ -115,3 +115,15 @@ confirm on the first real run.
 The toolbar icon is built from Krillion's own krill sprites (`/tiers/krillion.png` and
 `/tiers/krillion-gold.png`) on the game's trench gradient. That is the game's artwork - fine for a private tool the two of you load
 unpacked, not something to publish to the Chrome Web Store.
+
+## Design lab
+
+`python3 tools/build-preview.py` regenerates `ui-preview.html` from the extension's own CSS
+and markup. The page shows every panel state and a lab on the right:
+
+- **Version** - flip between the working copy and any commit that touched the panel. Each
+  version renders in its own frame with its own stylesheet, so you can see what changed.
+- **Editing** - All elements tunes the shared tokens; pick a single element and you get its
+  own padding, margin, size, colours, stroke and corners, seeded from its computed style.
+- Every row has an info icon explaining what the value does.
+- **Copy tokens** puts the result on the clipboard, ready to paste into `content.css`.

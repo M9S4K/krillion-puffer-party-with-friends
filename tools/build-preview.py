@@ -9,65 +9,134 @@ back into extension/content.css.
 """
 import json, re, pathlib
 
+import subprocess
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-css = (ROOT / 'extension/content.css').read_text()
-js = (ROOT / 'extension/content.js').read_text()
 
-preview_css = css.replace(
-    "  position: fixed; inset-inline-start: 14px; bottom: 14px; z-index: 2147483000;\n"
-    "  width: var(--w); max-width: calc(100vw - 28px);",
-    "  position: relative; z-index: 1;\n  width: var(--w);")
+def git(*args):
+    return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True).stdout
 
-tpl = re.search(r'root\.innerHTML = `(.*?)`;\n', js, re.S).group(1)
-INFO = re.search(r'(<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6".*?</svg>)', tpl, re.S).group(1)
-HIDE = re.search(r'(<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3\.5 8h9".*?</svg>)', tpl, re.S).group(1)
+def versions():
+    """Working copy first, then every commit that touched the panel."""
+    out = [("working", "Working copy",
+            (ROOT / 'extension/content.css').read_text(),
+            (ROOT / 'extension/content.js').read_text())]
+    log = git('log', '--format=%h\x1f%cs\x1f%s', '--', 'extension/content.css').strip()
+    for line in filter(None, log.splitlines()):
+        sha, date, subject = line.split('\x1f')
+        c = git('show', f'{sha}:extension/content.css')
+        j = git('show', f'{sha}:extension/content.js')
+        if c and j:
+            out.append((sha, f'{date} · {subject[:38]}', c, j))
+    return out
 
-PILL = '<button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button>'
+VERSIONS = versions()
+css = VERSIONS[0][2]
+js = VERSIONS[0][3]
 
-def top(name='puffa-boy'):
-    val = f'value="{name}"' if name else 'value="" placeholder="name your party"'
-    return ('<div id="kpj-top"><div id="kpj-id">'
-            '<div id="kpj-kicker-row"><span id="kpj-kicker">Party</span>'
-            f'<button id="kpj-info">{INFO}</button>'
-            '<span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div>'
-            f'<input id="kpj-name-input" type="text" {val} aria-label="Party name"></div>'
-            f'<button id="kpj-close">{HIDE}</button></div>')
+def build_frame(css_text, js_text):
+    """One self-contained document: a version's stylesheet around its own markup."""
+    preview_css = css_text.replace(
+        "  position: fixed; inset-inline-start: 14px; bottom: 14px; z-index: 2147483000;\n"
+        "  width: var(--w); max-width: calc(100vw - 28px);",
+        "  position: relative; z-index: 1;\n  width: var(--w);")
 
-ACTS = ('<div id="kpj-acts"><div id="kpj-cta">'
-        '<select id="kpj-size" aria-label="Room size"><option>4-6</option></select>'
-        '<button id="kpj-go">Find a room</button></div></div>')
+    tpl = re.search(r'root\.innerHTML = `(.*?)`;\n', js_text, re.S).group(1)
+    def pick(pattern, fallback=''):
+        m = re.search(pattern, tpl, re.S)
+        return m.group(1) if m else fallback
+    INFO = pick(r'(<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6".*?</svg>)')
+    HIDE = pick(r'(<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3\.5 8h9".*?</svg>)',
+                '<svg viewBox="0 0 16 16"><path d="M3.5 8h9" stroke-linecap="round"/></svg>')
+    GEAR = pick(r'(<svg viewBox="0 0 24 24".*?</svg>)')
+    has_shelf = 'kpj-shelf' in css_text
+    has_settings = 'kpj-set' in css_text
 
-def row(cls, name, me, status):
-    dot = ' live' if cls != ' kpj-away' else ''
-    return (f'<div class="kpj-who-row{cls}"><i class="kpj-dot{dot}"></i><b>{name}</b>'
-            + ('<em class="kpj-me">(you)</em>' if me else '') + f'<span>{status}</span></div>')
+    PILL = '<button id="kpj-pill"><i class="kpj-dot live"></i><span>Party &middot; 2</span></button>'
 
-def invite(_label=None):
-    return ('<div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i>'
-            '<button class="kpj-invite" type="button">Invite +</button></div>')
+    def top(name='puffa-boy'):
+        val = f'value="{name}"' if name else 'value="" placeholder="name your party"'
+        gear = f'<button id="kpj-gear">{GEAR}</button>' if GEAR else ''
+        if 'kpj-kicker' in css_text:
+            idblock = ('<div id="kpj-id">'
+                       '<div id="kpj-kicker-row"><span id="kpj-kicker">Party</span>'
+                       + (f'<button id="kpj-info">{INFO}</button>' if INFO else '')
+                       + '<span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div>'
+                       f'<input id="kpj-name-input" type="text" {val} aria-label="Party name"></div>')
+        else:
+            idblock = '<div id="kpj-name">Party &middot; puffa-boy</div>'
+        dot = '' if 'kpj-id' in css_text else '<i class="kpj-dot live"></i>'
+        return (f'<div id="kpj-top">{dot}{idblock}{gear}'
+                f'<button id="kpj-close">{HIDE}</button></div>')
 
-WHO_T = ('<div id="kpj-who">' + row(' kpj-same', 'puffa', True, 'in UCYU')
-         + row(' kpj-same', 'dave', False, 'with you') + row(' kpj-same', 'sam', False, 'with you')
-         + invite() + '</div>')
-WHO_A = ('<div id="kpj-who">' + row('', 'puffa', True, 'browsing') + row('', 'dave', False, 'too late')
-         + invite() + '</div>')
-WHO_S = '<div id="kpj-who">' + row('', 'puffa', True, 'browsing') + invite() + '</div>'
+    if 'kpj-cta' in css_text:
+        ACTS = ('<div id="kpj-acts"><div id="kpj-cta">'
+                '<select id="kpj-size"><option>4-6</option></select>'
+                '<button id="kpj-go">Find a room</button></div></div>')
+    else:
+        ACTS = ('<div id="kpj-acts">'
+                + ('<select id="kpj-size"><option>4-6</option></select>' if 'kpj-size' in css_text else '')
+                + '<button id="kpj-go">Find a room</button></div>')
 
-def stack(cls, inner, msg):
-    body = (f'<div id="kpj-stack"><div id="kpj-panel">{inner}'
-            f'<div id="kpj-msg">{msg}</div></div></div>') if inner else ''
-    return f'<div id="kpj" class="{cls}">{PILL}{body}</div>'
+    def row(cls, name, me, status):
+        dot = ' live' if cls != ' kpj-away' else ''
+        return (f'<div class="kpj-who-row{cls}"><i class="kpj-dot{dot}"></i><b>{name}</b>'
+                + ('<em class="kpj-me">(you)</em>' if me else '') + f'<span>{status}</span></div>')
 
-STATES = [
-    ("Collapsed", "How it sits while you play.", stack("", "", "")),
-    ("Three up", "A party is however many turn up - rows and seats scale.", stack("open", top() + WHO_T + ACTS, "UCYU · 4/6 - going in.")),
-    ("Apart", "They started without you: too late.", stack("open", top() + WHO_A + ACTS, "dave went to QMLL - following.")),
-    ("Alone", "Nobody there yet: a dotted Invite friend.", stack("open", top() + WHO_S + ACTS, "Linked - waiting for your friend")),
-    ("First run", "Nothing to configure but the name.", stack("open", top('') + WHO_S + ACTS, "Name your party above, same on both machines.")),
-]
+    def tail():
+        if 'kpj-invite' in css_text:
+            return ('<div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i>'
+                    '<button class="kpj-invite" type="button">Invite +</button></div>')
+        return '<div class="kpj-who-row kpj-away"><i class="kpj-dot"></i><b>Waiting</b></div>'
 
-CARDS = "\n".join(f'<figure><div class="stage">{h}</div><figcaption><b>{n}</b>{d}</figcaption></figure>'
-                  for n, d, h in STATES)
+    WHO_T = ('<div id="kpj-who">' + row(' kpj-same', 'puffa', True, 'in UCYU')
+             + row(' kpj-same', 'dave', False, 'with you') + row(' kpj-same', 'sam', False, 'with you')
+             + tail() + '</div>')
+    WHO_A = ('<div id="kpj-who">' + row('', 'puffa', True, 'browsing') + row('', 'dave', False, 'too late')
+             + tail() + '</div>')
+    WHO_S = '<div id="kpj-who">' + row('', 'puffa', True, 'browsing') + tail() + '</div>'
+
+    def stack(cls, inner, msg):
+        if not inner:
+            return f'<div id="kpj" class="{cls}">{PILL}</div>'
+        if has_shelf:
+            body = (f'<div id="kpj-stack"><div id="kpj-panel">{inner}</div>'
+                    f'<div id="kpj-shelf"><span id="kpj-msg">{msg}</span></div></div>')
+        else:
+            body = (f'<div id="kpj-stack"><div id="kpj-panel">{inner}'
+                    f'<div id="kpj-msg">{msg}</div></div></div>')
+        return f'<div id="kpj" class="{cls}">{PILL}{body}</div>'
+
+    states = [
+        ("Collapsed", "How it sits while you play.", stack("", "", "")),
+        ("Three up", "A party is however many turn up.", stack("open", top() + WHO_T + ACTS, "UCYU &middot; 4/6 - going in.")),
+        ("Apart", "They started without you.", stack("open", top() + WHO_A + ACTS, "dave went to QMLL - following.")),
+        ("Alone", "Nobody there yet.", stack("open", top() + WHO_S + ACTS, "Linked - waiting for your friend")),
+        ("First run", "Nothing to configure but the name.", stack("open", top('') + WHO_S + ACTS, "Name your party above, same on both machines.")),
+    ]
+    cards = "\n".join(f'<figure><div class="stage">{h}</div><figcaption><b>{n}</b>{d}</figcaption></figure>'
+                      for n, d, h in states)
+
+    return """<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 26px 22px 40px; background: #061324;
+    background-image: radial-gradient(900px 500px at 20% -10%, rgba(40,90,150,.35), transparent),
+                      radial-gradient(700px 400px at 90% 10%, rgba(20,70,120,.3), transparent);
+    color: #e8f3ff; font: .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .grid { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  figure { margin: 0; }
+  .stage { background: rgba(4,12,24,.5); border: 1px dashed rgba(125,180,255,.14);
+    border-radius: 14px; padding: 26px 22px 22px; min-width: 330px; display: flex; justify-content: center; }
+  figcaption { margin-top: 10px; max-width: 330px; font-size: .75rem; color: #9fb6d2; }
+  figcaption b { display: block; color: #e8f3ff; letter-spacing: .09em; font-weight: 400; margin-bottom: 3px; }
+""" + preview_css + """
+  #kpj.open #kpj-panel { opacity: 1; transform: none; }
+  figure:nth-child(2) #kpj-tip { opacity: 1; visibility: visible; transform: none; }
+</style></head><body><div class="grid">""" + cards + """</div>
+<style id="kpj-override"></style></body></html>"""
+
+
+FRAMES = [{"id": vid, "label": label, "doc": build_frame(c, j)} for vid, label, c, j in VERSIONS]
 
 # slider: (css var, label, min, max, step, default, unit, group, scoped?)
 CONTROLS = [
@@ -204,6 +273,8 @@ for g, items in groups.items():
                      f'<output data-for="{key}">{dflt}{unit}</output></label>')
 lab_rows += '</div>'
 
+VERSION_OPTIONS = ''.join(f'<option value="{f["id"]}">{f["label"]}</option>' for f in FRAMES)
+
 PROPS_JSON = json.dumps([
     {"k": k, "label": lb, "kind": kind, "min": lo, "max": hi, "step": st,
      "unit": u, "css": css, "info": note}
@@ -217,7 +288,7 @@ HTML = """<!doctype html>
 <title>Party Joiner UI</title>
 <style>
   :root { color-scheme: dark; }
-  body { margin: 0; padding: 30px 320px 46px 24px; background: #061324;
+  body { margin: 0; padding: 0; background: #061324;
     background-image: radial-gradient(900px 500px at 20% -10%, rgba(40,90,150,.35), transparent),
                       radial-gradient(700px 400px at 90% 10%, rgba(20,70,120,.3), transparent);
     color: #e8f3ff; font: .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -268,19 +339,21 @@ HTML = """<!doctype html>
   .lab-i:hover::after, .lab-i:focus-visible::after { opacity: 1; visibility: visible; transform: none; }
   #lab-el h2 { margin-top: 10px; color: #35d49a; }
   #lab-note { margin: 12px 0 0; font-size: .625rem; color: #6d8cb4; line-height: 1.5; }
+  #stage { position: fixed; inset: 0 288px 0 0; width: calc(100% - 288px); height: 100%;
+    border: 0; background: #061324; }
   #lab-out { margin-top: 8px; font-size: .625rem; color: #6d8cb4; white-space: pre-wrap;
     word-break: break-all; max-height: 150px; overflow: auto; }
-""" + preview_css + """
-  #kpj.open #kpj-panel { opacity: 1; transform: none; }
-  figure:nth-child(2) #kpj-tip { opacity: 1; visibility: visible; transform: none; }
+  #stage { position: fixed; inset: 0 288px 0 0; width: calc(100% - 288px); height: 100%;
+    border: 0; background: #061324; }
 </style></head>
 <body>
-  <h1>Krillion Puffer Party With Friends · UI</h1>
-  <p class="sub">The shipped stylesheet and the extension's own markup. Drag a slider to retune the tokens.</p>
-  <div class="grid">""" + CARDS + """</div>
+  <iframe id="stage" title="Panel preview"></iframe>
 
   <aside id="lab">
     <h1>Design lab</h1>
+    <label class="lab-row lab-target"><span>Version</span>
+      <select id="lab-version">VERSION_OPTIONS</select>
+      <output id="lab-ver-note"></output></label>
 """ + lab_rows + """
     <div id="lab-el" hidden>
       <h2 id="lab-el-name">Element</h2>
@@ -296,6 +369,7 @@ HTML = """<!doctype html>
   </aside>
 
 <script>
+const FRAMES = FRAMES_PLACEHOLDER;
 const PROPS = PROPS_PLACEHOLDER;
 const OVERRIDE = ELEMENTS_PLACEHOLDER;
 const SEA = [[950,.14,.028],[900,.19,.035],[850,.23,.042],[800,.27,.048],[700,.34,.052],
@@ -304,8 +378,20 @@ const ACC = [[700,.58,.11],[600,.68,.13],[500,.80,.15],[400,.86,.12],[300,.91,.0
 const el = id => document.getElementById(id);
 const sliders = [...document.querySelectorAll('#lab input[type=range]')];
 const target = el('lab-target');
-const style = document.createElement('style');
-document.head.appendChild(style);
+const stage = el('stage');
+const verSel = el('lab-version');
+let doc = null;                         // the live document inside the stage
+
+function loadVersion(id) {
+  const f = FRAMES.find(x => x.id === id) || FRAMES[0];
+  stage.srcdoc = f.doc;
+  el('lab-ver-note').textContent = id === 'working' ? 'live' : 'old';
+  stage.onload = () => {
+    doc = stage.contentDocument;
+    apply();
+    if (target.value !== 'all') buildInspector(target.value);
+  };
+}
 
 const picks = [...document.querySelectorAll('#lab input[type=color]')];
 const base = {};                       // slider defaults, straight from the stylesheet
@@ -418,7 +504,7 @@ const rgbToHex = v => {
 };
 
 function buildInspector(sel) {
-  const node = document.querySelector(sel);
+  const node = doc && doc.querySelector(sel);
   const box = el('lab-el-rows');
   box.innerHTML = '';
   if (!node) { box.textContent = 'Not in view.'; return; }
@@ -429,7 +515,7 @@ function buildInspector(sel) {
     if (p.kind === 'color') {
       seed = saved ?? rgbToHex(cs[p.css === 'background' ? 'backgroundColor' : p.css.replace(/-(.)/g, (_, c) => c.toUpperCase())]);
     } else if (p.k === 'corner') {
-      seed = saved ?? (cs.cornerShape?.match(/[\d.]+/)?.[0] ?? 2);
+      seed = saved ?? ((cs.cornerShape || '').match(/[\d.]+/)?.[0] ?? 2);
     } else if (p.k === 'shadow') {
       seed = saved ?? 0;
     } else {
@@ -457,8 +543,12 @@ function buildInspector(sel) {
 }
 
 function apply() {
-  style.textContent = css();
-  el('lab-out').textContent = css();
+  const out = css();
+  if (doc) {
+    const tag = doc.getElementById('kpj-override');
+    if (tag) tag.textContent = out;
+  }
+  el('lab-out').textContent = out;
   try { localStorage.setItem('kpj-lab', JSON.stringify({ state, scoped, elOver })); } catch {}
 }
 
@@ -521,8 +611,9 @@ for (const c of picks) {
   });
 }
 target.addEventListener('change', refresh);
+verSel.addEventListener('change', () => loadVersion(verSel.value));
 refresh();
-apply();
+loadVersion(verSel.value);
 
 el('lab-note').textContent = CSS.supports('corner-shape: superellipse(2)')
   ? 'Corner smoothing is live in this browser.'
@@ -544,6 +635,6 @@ el('lab-reset').onclick = () => {
 </script>
 </body></html>"""
 
-HTML = HTML.replace('PROPS_PLACEHOLDER', PROPS_JSON).replace('ELEMENTS_PLACEHOLDER', ELEMENTS_JSON)
+HTML = HTML.replace('FRAMES_PLACEHOLDER', json.dumps(FRAMES)).replace('VERSION_OPTIONS', VERSION_OPTIONS).replace('PROPS_PLACEHOLDER', PROPS_JSON).replace('ELEMENTS_PLACEHOLDER', ELEMENTS_JSON)
 (ROOT / 'ui-preview.html').write_text(HTML)
 print('ui-preview.html rebuilt with the design lab')

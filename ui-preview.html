@@ -4,7 +4,7 @@
 <title>Party Joiner UI</title>
 <style>
   :root { color-scheme: dark; }
-  body { margin: 0; padding: 30px 320px 46px 24px; background: #061324;
+  body { margin: 0; padding: 0; background: #061324;
     background-image: radial-gradient(900px 500px at 20% -10%, rgba(40,90,150,.35), transparent),
                       radial-gradient(700px 400px at 90% 10%, rgba(20,70,120,.3), transparent);
     color: #e8f3ff; font: .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -55,398 +55,21 @@
   .lab-i:hover::after, .lab-i:focus-visible::after { opacity: 1; visibility: visible; transform: none; }
   #lab-el h2 { margin-top: 10px; color: #35d49a; }
   #lab-note { margin: 12px 0 0; font-size: .625rem; color: #6d8cb4; line-height: 1.5; }
+  #stage { position: fixed; inset: 0 288px 0 0; width: calc(100% - 288px); height: 100%;
+    border: 0; background: #061324; }
   #lab-out { margin-top: 8px; font-size: .625rem; color: #6d8cb4; white-space: pre-wrap;
     word-break: break-all; max-height: 150px; overflow: auto; }
-/* Krillion Party Joiner — panel styles.
-   Tokens shared with the toast, concentric radii, 12px type floor in rem,
-   one press value, reduced-motion and hover gating. */
-
-#kpj, #kpj-toast {
-  /* --- primitives: one neutral ramp, one accent ramp, hue held end to end --- */
-  --navy-950: #040b16;  --navy-900: #081425;  --navy-850: #0d1c31;
-  --navy-800: #122440;  --navy-700: #1b3557;  --navy-600: #2a4a73;
-  --navy-500: #3f6391;  --navy-400: #6d8cb4;  --navy-300: #9db5d3;
-  --navy-200: #c7d9ee;  --navy-100: #e9f3ff;
-  --mint-700: #1c8f67;  --mint-600: #28ad7e;  --mint-500: #35d49a;
-  --mint-400: #5fe0b1;  --mint-300: #9eeed0;  --mint-100: #d7fff0;
-  --gold-500: #f3c457;  --coral-500: #ef6b6b;
-
-  /* --- semantic: every component reads these, never a primitive ---------- */
-  --surface: var(--navy-900);
-  --surface-top: var(--navy-850);
-  --surface-raised: var(--navy-800);
-  --surface-sunken: var(--navy-950);
-  --stroke-w: 1.5px;              /* stroke width, everywhere */
-  --stroke-l: .31;              /* stroke lightness */
-  --stroke-c: .03;             /* stroke chroma */
-  --stroke-h: 248;              /* stroke hue */
-  --stroke-a: .24;              /* stroke alpha */
-  --stroke-h2: 0;             /* second hue, for the gradient stroke */
-  --stroke-mix: 0%;             /* 0% = flat stroke, 100% = full gradient */
-  --stroke-angle: 195deg;
-  --corner-k: 1;                /* 2 = round, 3-5 = squircle, >5 = flatter */
-  --stroke-1: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / var(--stroke-a));
-  --stroke-2: oklch(var(--stroke-l) calc(var(--stroke-c) * 1.6) var(--stroke-h2) / var(--stroke-a));
-  --stroke: linear-gradient(var(--stroke-angle), var(--stroke-1),
-            color-mix(in oklab, var(--stroke-2) var(--stroke-mix), var(--stroke-1)));
-  --border-subtle: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / calc(var(--stroke-a) * .78));
-  --border: var(--stroke-1);
-  --border-input: var(--navy-500);
-  --text: var(--navy-100);
-  --text-dim: var(--navy-300);
-  --text-faint: var(--navy-400);
-  --accent: var(--mint-500);
-  --accent-deep: var(--mint-700);
-  --accent-ink: var(--mint-100);
-  --warn: var(--gold-500);
-  --bad: var(--coral-500);
-
-  /* legacy aliases kept so older rules keep resolving */
-  --bg: var(--surface);
-  --bg-2: var(--surface-raised);
-  --edge: var(--border-subtle);
-  --edge-strong: var(--border);
-  --edge-input: var(--border-input);
-
-  /* --- shape (concentric: outer = inner + padding) --------------------- */
-  --pad: 15px;
-  --pad-head: 8px;        /* header block padding */
-  --gap-row: 5px;         /* between presence rows */
-  --cta-h: 34px;          /* button height */
-  --r-inner: 18px;
-  --r-outer: 20px;
-
-  /* --- type (floor 0.75rem = 12px) ------------------------------------- */
-  --fs-body: .875rem;
-  --fs-label: .8125rem;
-  --fs-kicker: .5938rem;
-
-  /* --- size ------------------------------------------------------------- */
-  --w: 306px;
-
-  --ease: cubic-bezier(.23, 1, .32, 1);
-
-  /* --- depth ------------------------------------------------------------ */
-  --lip-a: .07;          /* top highlight strength */
-  --lift-a: .4;          /* drop shadow strength */
-  --lip: inset 0 1px 0 rgb(255 255 255 / var(--lip-a));
-  --lift: 0 1px 1px rgb(0 0 0 / calc(var(--lift-a) * .875)), 0 8px 18px rgb(0 0 0 / var(--lift-a));
-}
-@supports (color: oklch(0.5 0.1 250)) {
-  #kpj, #kpj-toast {
-    --navy-950: oklch(.14 .028 250);  --navy-900: oklch(.19 .035 250);
-    --navy-850: oklch(.23 .042 250);  --navy-800: oklch(.27 .048 250);
-    --navy-700: oklch(.34 .052 250);  --navy-600: oklch(.44 .056 250);
-    --navy-500: oklch(.54 .062 250);  --navy-400: oklch(.66 .048 250);
-    --navy-300: oklch(.78 .036 250);  --navy-200: oklch(.88 .024 250);
-    --navy-100: oklch(.96 .015 250);
-    --mint-700: oklch(.58 .11 160);   --mint-600: oklch(.68 .13 160);
-    --mint-500: oklch(.80 .15 160);   --mint-400: oklch(.86 .12 160);
-    --mint-300: oklch(.91 .09 160);   --mint-100: oklch(.96 .05 160);
-    --gold-500: oklch(.83 .13 85);    --coral-500: oklch(.70 .16 22);
-  }
-}
-
-#kpj {
-  position: relative; z-index: 1;
-  width: var(--w);
-  color: var(--text);
-  font: var(--fs-body)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-variant-numeric: tabular-nums;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-tap-highlight-color: transparent;
-}
-#kpj * { box-sizing: border-box; }
-#kpj button { font: inherit; color: inherit; cursor: pointer; background: transparent; border: 0; }
-#kpj svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColor; stroke-width: 1.5; }
-#kpj :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-
-/* --- collapsed pill ---------------------------------------------------- */
-#kpj button#kpj-pill {
-  display: flex; align-items: center; gap: 8px;
-  width: max-content; max-width: 100%; min-height: 32px;
-  padding: 0 14px 0 11px; border-radius: 999px;
-  border: var(--stroke-w) solid transparent;
-  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;
-  color: var(--text-dim); user-select: none;
-  transition: border-color 160ms var(--ease), color 160ms var(--ease), transform 150ms ease-out;
-}
-#kpj button#kpj-pill:active { transform: scale(.96); }
-#kpj.open button#kpj-pill { display: none; }
-
-/* --- panel ------------------------------------------------------------- */
-#kpj-stack { position: relative; filter: drop-shadow(0 12px 22px rgb(0 0 0 / .45)); }
-
-#kpj-panel {
-  display: none; position: relative; z-index: 2; border-radius: var(--r-outer);
-  border: var(--stroke-w) solid transparent;
-  overscroll-behavior: contain;
-  transform-origin: bottom left;           /* opens from the pill, not the centre */
-}
-#kpj.open #kpj-panel {
-  display: block;
-  opacity: 1; transform: scale(1) translateY(0);
-  transition: opacity 250ms var(--ease), transform 250ms var(--ease), display 250ms allow-discrete;
-}
-@starting-style {
-  #kpj.open #kpj-panel { opacity: 0; transform: scale(.98) translateY(8px); }
-}
-/* exit: shorter and smaller than the enter */
-#kpj.open.closing #kpj-panel {
-  opacity: 0; transform: scale(.99) translateY(4px);
-  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exits run shorter */
-}
-
-@keyframes kpj-say { from { opacity: 0; filter: blur(4px); transform: translateY(4px); } }
-
-/* a row only animates the first time it appears */
-.kpj-who-row.kpj-in { animation: kpj-row 300ms ease-out both; }
-@keyframes kpj-row { from { opacity: 0; filter: blur(4px); transform: translateY(12px); } }
-
-#kpj-top {
-  display: flex; align-items: center; gap: 8px; user-select: none;
-  padding: var(--pad-head) var(--pad); border-bottom: var(--stroke-w) solid var(--border-subtle);
-}
-#kpj-id { flex: 1; min-width: 0; display: grid; gap: 1px; }
-#kpj-kicker-row { position: relative; display: flex; align-items: center; gap: 5px; }
-#kpj-kicker {
-  font-size: var(--fs-kicker); line-height: 1.1; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--text-faint);
-}
-#kpj button#kpj-info {
-  width: 15px; height: 15px; display: grid; place-items: center; padding: 0;
-  border-radius: 50%; color: var(--text-faint);
-  transition: color 140ms var(--ease);
-}
-#kpj button#kpj-info svg { width: 11px; height: 11px; }
-#kpj-name-input {                                  /* underline only, no box */
-  width: 100%; min-width: 0; min-height: 21px; padding: 0 0 2px;
-  font: inherit; color: var(--text); background: transparent;
-  border: 0; border-bottom: var(--stroke-w) solid transparent; border-radius: 0;
-  text-overflow: ellipsis;
-  transition: border-color 140ms var(--ease), box-shadow 140ms var(--ease);
-}
-#kpj-name-input::placeholder { color: var(--text-faint); }
-#kpj-name-input:focus {
-  outline: none; border-bottom-color: var(--accent);
-  box-shadow: 0 1px 0 0 var(--accent);             /* a 2px underline without a layout shift */
-}
-
-/* info tooltip */
-#kpj-tip {
-  position: absolute; bottom: calc(100% + 7px); inset-inline-start: -2px; z-index: 4;
-  width: 186px; padding: 7px 9px; border-radius: var(--r-inner);
-  border: var(--stroke-w) solid transparent; color: var(--text-dim);
-  font-size: var(--fs-label); line-height: 1.4; text-wrap: pretty;
-  transform-origin: bottom left;
-  opacity: 0; visibility: hidden; transform: scale(.97) translateY(2px);
-  transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 150ms;
-  pointer-events: none;
-}
-#kpj-info:hover + #kpj-tip, #kpj-info:focus-visible + #kpj-tip {
-  opacity: 1; visibility: visible; transform: none;
-}
-#kpj-top button {
-  width: 30px; height: 30px; display: grid; place-items: center;
-  border-radius: 6px; color: var(--text-faint);
-  transition: color 140ms var(--ease), background-color 140ms var(--ease), transform 150ms ease-out;
-}
-#kpj-top button:active { transform: scale(.96); }
-
-.kpj-dot {
-  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
-  background: var(--text-faint);
-  transition: background-color 150ms var(--ease), box-shadow 150ms var(--ease);
-}
-.kpj-dot.live { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent); }
-.kpj-dot.wait { background: var(--warn); }
-.kpj-dot.dead { background: var(--bad); }
-
-/* --- who is here ------------------------------------------------------- */
-#kpj-who { padding: var(--pad) var(--pad) 2px; display: grid; gap: var(--gap-row); }
-.kpj-who-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.kpj-who-row .kpj-dot { align-self: center; }
-.kpj-who-row b {
-  font-weight: 400; color: var(--text);
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.kpj-who-row.kpj-away b { color: var(--text-dim); }
-#kpj button.kpj-invite {
-  padding: 0; font: inherit; color: var(--text-faint);
-  text-decoration: underline dotted; text-underline-offset: 3px;
-  text-decoration-thickness: from-font;
-  transition: color 150ms ease-out, text-decoration-color 150ms ease-out;
-}
-.kpj-me { font-style: normal; font-size: var(--fs-label); color: var(--text-faint); }
-.kpj-who-row span {
-  margin-inline-start: auto; padding-inline-start: 8px;
-  font-size: var(--fs-label); letter-spacing: .04em;
-  color: var(--text-dim); white-space: nowrap;
-}
-.kpj-who-row.kpj-same span { color: var(--accent); }
-
-/* --- actions ----------------------------------------------------------- */
-#kpj-acts { padding: var(--pad); }
-#kpj-cta {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch;
-  min-height: var(--cta-h); border-radius: var(--r-inner); overflow: hidden;
-  background: color-mix(in oklab, var(--accent) 18%, transparent);
-  border: var(--stroke-w) solid color-mix(in oklab, var(--accent) 38%, transparent);
-  transition: background-color 160ms var(--ease), transform 150ms ease-out, box-shadow 150ms ease-out;
-}
-#kpj-cta:has(#kpj-go:active) { transform: scale(.96); }
-#kpj-cta:has(#kpj-go:disabled) { opacity: .45; }
-#kpj-size {
-  padding: 0 19px 0 9px; border: 0; border-radius: 0;
-  border-inline-end: var(--stroke-w) solid color-mix(in oklab, var(--accent) 28%, transparent);
-  background-color: color-mix(in oklab, var(--accent) 10%, transparent);
-  color: var(--accent-ink);
-  font: inherit; font-size: var(--fs-label); cursor: pointer;
-  appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23d7fff0' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M3 4.6 6 7.6l3-3'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 6px center; background-size: 10px;
-  transition: background-color 140ms var(--ease);
-}
-#kpj-size:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-#kpj-size option { background: var(--bg-2); color: var(--text); }
-#kpj button#kpj-go {
-  min-height: calc(var(--cta-h) - 2px); border: 0; border-radius: 0; background: transparent;
-  color: var(--accent-ink);
-  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;
-}
-#kpj button#kpj-go:disabled { cursor: default; }
-
-/* --- toast ------------------------------------------------------------- */
-#kpj-toast {
-  position: fixed; inset-inline-start: 14px; bottom: 60px; z-index: 2147483001;
-  pointer-events: none; max-width: 272px;
-  padding: 9px 12px; border-radius: var(--r-inner);
-  background: var(--bg); border: 1px solid var(--edge); color: var(--text);
-  font: var(--fs-label)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  text-wrap: pretty; box-shadow: 0 10px 26px rgb(0 0 0 / .5);
-  opacity: 0; transform: translateY(4px);
-  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exit */
-}
-#kpj-toast.show {
-  opacity: 1; transform: none;
-  transition: opacity 250ms var(--ease), transform 250ms var(--ease);  /* enter */
-}
-#kpj-toast.sticky { pointer-events: auto; cursor: pointer; border-color: var(--edge-strong); }
-
-/* --- input modality ---------------------------------------------------- */
-@media (hover: hover) and (pointer: fine) {
-  #kpj button.kpj-invite:hover { color: var(--text); }
-  #kpj-name-input:hover:not(:focus) { border-bottom-color: var(--edge-input); }
-  #kpj button#kpj-info:hover { color: var(--text); }
-  #kpj button#kpj-pill:hover { border-color: var(--edge-strong); color: var(--text); }
-  #kpj-top button:hover { color: var(--text); background: color-mix(in oklab, var(--edge) 35%, transparent); }
-  #kpj-cta:has(#kpj-go:not(:disabled)):hover { background: color-mix(in oklab, var(--accent) 26%, transparent); }
-  #kpj-size:hover { background-color: color-mix(in oklab, var(--accent) 20%, transparent); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #kpj *, #kpj-toast { transition-property: opacity, color, background-color, border-color !important; }
-  .kpj-who-row.kpj-in,   @keyframes kpj-fade { from { opacity: 0; } }
-  #kpj.open #kpj-panel, #kpj.open.closing #kpj-panel { transform: none !important; }
-  @starting-style { #kpj.open #kpj-panel { opacity: 0; transform: none; } }
-}
-
-@media (max-width: 720px) { #kpj { inset-inline-start: 8px; bottom: 8px; width: calc(var(--w) - 32px); } }
-
-/* --- depth: a little glass and a little moulding ------------------------ */
-
-#kpj button#kpj-pill {
-  background:
-    linear-gradient(180deg, var(--surface-top), var(--surface) 70%, var(--surface-sunken)) padding-box,
-    var(--stroke) border-box;
-  box-shadow: var(--lip), var(--lift);
-}
-
-#kpj-panel {
-  background:
-    linear-gradient(180deg, var(--surface-top), var(--surface) 55%, var(--surface-sunken)) padding-box,
-    var(--stroke) border-box;
-  box-shadow: var(--lip);
-}
-#kpj-stack { filter: drop-shadow(0 2px 2px rgb(0 0 0 / calc(var(--lift-a) * .7))) drop-shadow(0 11px 18px rgb(0 0 0 / var(--lift-a))); }
-
-#kpj-top { box-shadow: inset 0 -1px 0 rgb(0 0 0 / .25); }
-
-
-/* the one button is a moulded key */
-#kpj-cta {
-  background:
-    linear-gradient(180deg,
-      color-mix(in oklab, var(--accent) 34%, transparent),
-      color-mix(in oklab, var(--accent-deep) 26%, transparent));
-  border-color: color-mix(in oklab, var(--accent) 46%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklab, var(--accent-ink) 34%, transparent),
-    inset 0 -1px 0 rgb(0 0 0 / .25),
-    0 1px 2px rgb(0 0 0 / .35);
-}
-#kpj-cta:has(#kpj-go:active) {
-  transform: translateY(1px);
-  box-shadow: inset 0 2px 5px rgb(0 0 0 / .38);
-}
-#kpj-size {
-  background-color: rgb(0 0 0 / .14);
-  box-shadow: inset -1px 0 0 rgb(0 0 0 / .2);
-}
-
-/* an LED, not a flat circle */
-.kpj-dot.live {
-  background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .55), var(--accent) 62%);
-  box-shadow: 0 0 7px color-mix(in oklab, var(--accent) 55%, transparent),
-              inset 0 0 2px rgb(0 0 0 / .35);
-}
-.kpj-dot.wait { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .5), var(--warn) 62%); }
-.kpj-dot.dead { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .45), var(--bad) 62%); }
-
-#kpj-tip, #kpj-toast {
-  background:
-    linear-gradient(180deg, var(--surface-raised), var(--surface)) padding-box,
-    var(--stroke) border-box;
-  box-shadow: var(--lip), var(--lift);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #kpj-cta:has(#kpj-go:active) { transform: none; }
-}
-
-/* --- corner smoothing (Chrome's superellipse; plain rounding elsewhere) --- */
-@supports (corner-shape: superellipse(2)) {
-  #kpj button#kpj-pill, #kpj-panel, #kpj-cta, #kpj-tip, #kpj-toast, #kpj-top button {
-    corner-shape: superellipse(var(--corner-k));
-  }
-}
-
-/* the status line lives at the foot of the card */
-#kpj-msg {
-  padding: 0 var(--pad) var(--pad); font-size: var(--fs-label);
-  color: var(--text-faint); text-wrap: pretty; overflow-wrap: anywhere;
-}
-#kpj-msg.kpj-empty { display: none; }
-#kpj-msg.kpj-fresh { animation: kpj-say 300ms ease-out both; }
-
-/* the invite keeps the dot's space so it lines up with the names */
-.kpj-dot.kpj-ghost { visibility: hidden; }
-
-  #kpj.open #kpj-panel { opacity: 1; transform: none; }
-  figure:nth-child(2) #kpj-tip { opacity: 1; visibility: visible; transform: none; }
+  #stage { position: fixed; inset: 0 288px 0 0; width: calc(100% - 288px); height: 100%;
+    border: 0; background: #061324; }
 </style></head>
 <body>
-  <h1>Krillion Puffer Party With Friends · UI</h1>
-  <p class="sub">The shipped stylesheet and the extension's own markup. Drag a slider to retune the tokens.</p>
-  <div class="grid"><figure><div class="stage"><div id="kpj" class=""><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button></div></div><figcaption><b>Collapsed</b>How it sits while you play.</figcaption></figure>
-<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="puffa-boy" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row kpj-same"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>in UCYU</span></div><div class="kpj-who-row kpj-same"><i class="kpj-dot live"></i><b>dave</b><span>with you</span></div><div class="kpj-who-row kpj-same"><i class="kpj-dot live"></i><b>sam</b><span>with you</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">UCYU · 4/6 - going in.</div></div></div></div></div><figcaption><b>Three up</b>A party is however many turn up - rows and seats scale.</figcaption></figure>
-<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="puffa-boy" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>browsing</span></div><div class="kpj-who-row"><i class="kpj-dot live"></i><b>dave</b><span>too late</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">dave went to QMLL - following.</div></div></div></div></div><figcaption><b>Apart</b>They started without you: too late.</figcaption></figure>
-<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="puffa-boy" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>browsing</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">Linked - waiting for your friend</div></div></div></div></div><figcaption><b>Alone</b>Nobody there yet: a dotted Invite friend.</figcaption></figure>
-<figure><div class="stage"><div id="kpj" class="open"><button id="kpj-pill"><i class="kpj-dot live"></i><span>Party · 2</span></button><div id="kpj-stack"><div id="kpj-panel"><div id="kpj-top"><div id="kpj-id"><div id="kpj-kicker-row"><span id="kpj-kicker">Party</span><button id="kpj-info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip">Both of you type the same party name. Only room codes travel.</span></div><input id="kpj-name-input" type="text" value="" placeholder="name your party" aria-label="Party name"></div><button id="kpj-close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button></div><div id="kpj-who"><div class="kpj-who-row"><i class="kpj-dot live"></i><b>puffa</b><em class="kpj-me">(you)</em><span>browsing</span></div><div class="kpj-who-row kpj-away"><i class="kpj-dot kpj-ghost"></i><button class="kpj-invite" type="button">Invite +</button></div></div><div id="kpj-acts"><div id="kpj-cta"><select id="kpj-size" aria-label="Room size"><option>4-6</option></select><button id="kpj-go">Find a room</button></div></div><div id="kpj-msg">Name your party above, same on both machines.</div></div></div></div></div><figcaption><b>First run</b>Nothing to configure but the name.</figcaption></figure></div>
+  <iframe id="stage" title="Panel preview"></iframe>
 
   <aside id="lab">
     <h1>Design lab</h1>
+    <label class="lab-row lab-target"><span>Version</span>
+      <select id="lab-version"><option value="working">Working copy</option><option value="0bd5952">2026-11-22 · Krillion Party Joiner: extension, desi</option></select>
+      <output id="lab-ver-note"></output></label>
 <label class="lab-row lab-target"><span>Editing</span><select id="lab-target"><option value="all" data-solid="all">All elements</option><option value="#kpj-panel" data-solid="#kpj #kpj-panel">Panel</option><option value="#kpj-pill" data-solid="#kpj button#kpj-pill">Pill</option><option value="#kpj-top" data-solid="#kpj #kpj-top">Header</option><option value="#kpj-name-input" data-solid="#kpj #kpj-name-input">Party name</option><option value="#kpj-kicker" data-solid="#kpj #kpj-kicker">Kicker</option><option value="#kpj-who" data-solid="#kpj #kpj-who">Rows</option><option value=".kpj-invite" data-solid="#kpj button.kpj-invite">Invite</option><option value="#kpj-cta" data-solid="#kpj #kpj-cta">Button</option><option value="#kpj-go" data-solid="#kpj button#kpj-go">Button label</option><option value="#kpj-size" data-solid="#kpj #kpj-size">Size chip</option><option value="#kpj-msg" data-solid="#kpj #kpj-msg">Status line</option><option value="#kpj-tip" data-solid="#kpj #kpj-tip">Tooltip</option></select><output id="lab-scope-note"></output></label><div id="lab-global"><h2>Colour</h2><label class="lab-row"><span>Sea<i class="lab-i" tabindex="0" data-info="Base colour of the card. The whole navy ramp is rebuilt from it.">i</i></span><input type="color" data-pick="sea" value="#16233c"><output data-for="pick-sea">#16233c</output></label><label class="lab-row"><span>Accent<i class="lab-i" tabindex="0" data-info="Colour of the main button and the with-you state.">i</i></span><input type="color" data-pick="acc" value="#35d49a"><output data-for="pick-acc">#35d49a</output></label><label class="lab-row"><span>Sea chroma<i class="lab-i" tabindex="0" data-info="Multiplies the sea ramp's colourfulness. 1x keeps the picked colour.">i</i></span><input type="range" data-k="sea-c" data-unit="x" data-scoped="0" min="0.3" max="2.0" step="0.05" value="1"><output data-for="sea-c">1x</output></label><label class="lab-row"><span>Accent chroma<i class="lab-i" tabindex="0" data-info="Multiplies the accent ramp's colourfulness.">i</i></span><input type="range" data-k="acc-c" data-unit="x" data-scoped="0" min="0.2" max="1.6" step="0.05" value="1"><output data-for="acc-c">1x</output></label><h2>Shape</h2><label class="lab-row"><span>Panel width<i class="lab-i" tabindex="0" data-info="Width of the whole panel and the card behind it.">i</i></span><input type="range" data-k="w" data-unit="px" data-scoped="0" min="200" max="360" step="2" value="306"><output data-for="w">306px</output></label><label class="lab-row"><span>Outer radius<i class="lab-i" tabindex="0" data-info="Corner radius of the card itself.">i</i></span><input type="range" data-k="r-outer" data-unit="px" data-scoped="1" min="0" max="32" step="1" value="20"><output data-for="r-outer">20px</output></label><label class="lab-row"><span>Inner radius<i class="lab-i" tabindex="0" data-info="Corner radius of things inside the card: button, chip, tooltip.">i</i></span><input type="range" data-k="r-inner" data-unit="px" data-scoped="1" min="0" max="28" step="1" value="18"><output data-for="r-inner">18px</output></label><label class="lab-row"><span>Corner smoothing<i class="lab-i" tabindex="0" data-info="Corner curve. 2 is round, 4 a squircle, 1 a straight chamfer.">i</i></span><input type="range" data-k="corner-k" data-unit="" data-scoped="1" min="0.5" max="8" step="0.1" value="1"><output data-for="corner-k">1</output></label><h2>Spacing</h2><label class="lab-row"><span>Card padding<i class="lab-i" tabindex="0" data-info="Space inside the card, around every block.">i</i></span><input type="range" data-k="pad" data-unit="px" data-scoped="0" min="6" max="24" step="1" value="15"><output data-for="pad">15px</output></label><label class="lab-row"><span>Header padding<i class="lab-i" tabindex="0" data-info="Space above and below the party name block.">i</i></span><input type="range" data-k="pad-head" data-unit="px" data-scoped="0" min="2" max="20" step="1" value="8"><output data-for="pad-head">8px</output></label><label class="lab-row"><span>Row gap<i class="lab-i" tabindex="0" data-info="Space between the people rows.">i</i></span><input type="range" data-k="gap-row" data-unit="px" data-scoped="0" min="0" max="16" step="1" value="5"><output data-for="gap-row">5px</output></label><label class="lab-row"><span>Button height<i class="lab-i" tabindex="0" data-info="Height of the Find a room button and its size chip.">i</i></span><input type="range" data-k="cta-h" data-unit="px" data-scoped="0" min="26" max="52" step="1" value="34"><output data-for="cta-h">34px</output></label><h2>Type</h2><label class="lab-row"><span>Body size<i class="lab-i" tabindex="0" data-info="Size of names and the button label.">i</i></span><input type="range" data-k="fs-body" data-unit="px" data-scoped="0" min="11" max="18" step="0.5" value="14"><output data-for="fs-body">14px</output></label><label class="lab-row"><span>Label size<i class="lab-i" tabindex="0" data-info="Size of the room status, the status line and the chip.">i</i></span><input type="range" data-k="fs-label" data-unit="px" data-scoped="0" min="9" max="16" step="0.5" value="13"><output data-for="fs-label">13px</output></label><label class="lab-row"><span>Kicker size<i class="lab-i" tabindex="0" data-info="Size of the small PARTY label above the name.">i</i></span><input type="range" data-k="fs-kicker" data-unit="px" data-scoped="0" min="7" max="14" step="0.5" value="9.5"><output data-for="fs-kicker">9.5px</output></label><h2>Depth</h2><label class="lab-row"><span>Top highlight<i class="lab-i" tabindex="0" data-info="Strength of the 1px highlight along the top of raised surfaces.">i</i></span><input type="range" data-k="lip-a" data-unit="" data-scoped="0" min="0" max="0.3" step="0.005" value="0.07"><output data-for="lip-a">0.07</output></label><label class="lab-row"><span>Drop shadow<i class="lab-i" tabindex="0" data-info="Strength of the shadow the card casts on the page.">i</i></span><input type="range" data-k="lift-a" data-unit="" data-scoped="0" min="0" max="0.8" step="0.01" value="0.4"><output data-for="lift-a">0.4</output></label><h2>Stroke</h2><label class="lab-row"><span>Stroke<i class="lab-i" tabindex="0" data-info="Colour every border is drawn in.">i</i></span><input type="color" data-pick="stroke" value="#3b4a60"><output data-for="pick-stroke">#3b4a60</output></label><label class="lab-row"><span>Stroke width<i class="lab-i" tabindex="0" data-info="Thickness of every border.">i</i></span><input type="range" data-k="stroke-w" data-unit="px" data-scoped="1" min="0" max="4" step="0.5" value="1.5"><output data-for="stroke-w">1.5px</output></label><label class="lab-row"><span>Stroke alpha<i class="lab-i" tabindex="0" data-info="Transparency of the stroke colour.">i</i></span><input type="range" data-k="stroke-a" data-unit="" data-scoped="1" min="0" max="1" step="0.01" value="0.24"><output data-for="stroke-a">0.24</output></label><label class="lab-row"><span>Gradient amount<i class="lab-i" tabindex="0" data-info="0% is a flat stroke. Higher blends toward the opposite hue.">i</i></span><input type="range" data-k="stroke-mix" data-unit="%" data-scoped="1" min="0" max="100" step="1" value="0"><output data-for="stroke-mix">0%</output></label><label class="lab-row"><span>Gradient angle<i class="lab-i" tabindex="0" data-info="Direction the stroke gradient runs.">i</i></span><input type="range" data-k="stroke-angle" data-unit="deg" data-scoped="1" min="0" max="360" step="5" value="195"><output data-for="stroke-angle">195deg</output></label></div>
     <div id="lab-el" hidden>
       <h2 id="lab-el-name">Element</h2>
@@ -462,6 +85,7 @@
   </aside>
 
 <script>
+const FRAMES = [{"id": "working", "label": "Working copy", "doc": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><style>\n  :root { color-scheme: dark; }\n  body { margin: 0; padding: 26px 22px 40px; background: #061324;\n    background-image: radial-gradient(900px 500px at 20% -10%, rgba(40,90,150,.35), transparent),\n                      radial-gradient(700px 400px at 90% 10%, rgba(20,70,120,.3), transparent);\n    color: #e8f3ff; font: .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }\n  .grid { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }\n  figure { margin: 0; }\n  .stage { background: rgba(4,12,24,.5); border: 1px dashed rgba(125,180,255,.14);\n    border-radius: 14px; padding: 26px 22px 22px; min-width: 330px; display: flex; justify-content: center; }\n  figcaption { margin-top: 10px; max-width: 330px; font-size: .75rem; color: #9fb6d2; }\n  figcaption b { display: block; color: #e8f3ff; letter-spacing: .09em; font-weight: 400; margin-bottom: 3px; }\n/* Krillion Party Joiner \u2014 panel styles.\n   Tokens shared with the toast, concentric radii, 12px type floor in rem,\n   one press value, reduced-motion and hover gating. */\n\n#kpj, #kpj-toast {\n  /* --- primitives: one neutral ramp, one accent ramp, hue held end to end --- */\n  --navy-950: #040b16;  --navy-900: #081425;  --navy-850: #0d1c31;\n  --navy-800: #122440;  --navy-700: #1b3557;  --navy-600: #2a4a73;\n  --navy-500: #3f6391;  --navy-400: #6d8cb4;  --navy-300: #9db5d3;\n  --navy-200: #c7d9ee;  --navy-100: #e9f3ff;\n  --mint-700: #1c8f67;  --mint-600: #28ad7e;  --mint-500: #35d49a;\n  --mint-400: #5fe0b1;  --mint-300: #9eeed0;  --mint-100: #d7fff0;\n  --gold-500: #f3c457;  --coral-500: #ef6b6b;\n\n  /* --- semantic: every component reads these, never a primitive ---------- */\n  --surface: var(--navy-900);\n  --surface-top: var(--navy-850);\n  --surface-raised: var(--navy-800);\n  --surface-sunken: var(--navy-950);\n  --stroke-w: 1.5px;              /* stroke width, everywhere */\n  --stroke-l: .31;              /* stroke lightness */\n  --stroke-c: .03;             /* stroke chroma */\n  --stroke-h: 248;              /* stroke hue */\n  --stroke-a: .24;              /* stroke alpha */\n  --stroke-h2: 0;             /* second hue, for the gradient stroke */\n  --stroke-mix: 0%;             /* 0% = flat stroke, 100% = full gradient */\n  --stroke-angle: 195deg;\n  --corner-k: 1;                /* 2 = round, 3-5 = squircle, >5 = flatter */\n  --stroke-1: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / var(--stroke-a));\n  --stroke-2: oklch(var(--stroke-l) calc(var(--stroke-c) * 1.6) var(--stroke-h2) / var(--stroke-a));\n  --stroke: linear-gradient(var(--stroke-angle), var(--stroke-1),\n            color-mix(in oklab, var(--stroke-2) var(--stroke-mix), var(--stroke-1)));\n  --border-subtle: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / calc(var(--stroke-a) * .78));\n  --border: var(--stroke-1);\n  --border-input: var(--navy-500);\n  --text: var(--navy-100);\n  --text-dim: var(--navy-300);\n  --text-faint: var(--navy-400);\n  --accent: var(--mint-500);\n  --accent-deep: var(--mint-700);\n  --accent-ink: var(--mint-100);\n  --warn: var(--gold-500);\n  --bad: var(--coral-500);\n\n  /* legacy aliases kept so older rules keep resolving */\n  --bg: var(--surface);\n  --bg-2: var(--surface-raised);\n  --edge: var(--border-subtle);\n  --edge-strong: var(--border);\n  --edge-input: var(--border-input);\n\n  /* --- shape (concentric: outer = inner + padding) --------------------- */\n  --pad: 15px;\n  --pad-head: 8px;        /* header block padding */\n  --gap-row: 5px;         /* between presence rows */\n  --cta-h: 34px;          /* button height */\n  --r-inner: 18px;\n  --r-outer: 20px;\n\n  /* --- type (floor 0.75rem = 12px) ------------------------------------- */\n  --fs-body: .875rem;\n  --fs-label: .8125rem;\n  --fs-kicker: .5938rem;\n\n  /* --- size ------------------------------------------------------------- */\n  --w: 306px;\n\n  --ease: cubic-bezier(.23, 1, .32, 1);\n\n  /* --- depth ------------------------------------------------------------ */\n  --lip-a: .07;          /* top highlight strength */\n  --lift-a: .4;          /* drop shadow strength */\n  --lip: inset 0 1px 0 rgb(255 255 255 / var(--lip-a));\n  --lift: 0 1px 1px rgb(0 0 0 / calc(var(--lift-a) * .875)), 0 8px 18px rgb(0 0 0 / var(--lift-a));\n}\n@supports (color: oklch(0.5 0.1 250)) {\n  #kpj, #kpj-toast {\n    --navy-950: oklch(.14 .028 250);  --navy-900: oklch(.19 .035 250);\n    --navy-850: oklch(.23 .042 250);  --navy-800: oklch(.27 .048 250);\n    --navy-700: oklch(.34 .052 250);  --navy-600: oklch(.44 .056 250);\n    --navy-500: oklch(.54 .062 250);  --navy-400: oklch(.66 .048 250);\n    --navy-300: oklch(.78 .036 250);  --navy-200: oklch(.88 .024 250);\n    --navy-100: oklch(.96 .015 250);\n    --mint-700: oklch(.58 .11 160);   --mint-600: oklch(.68 .13 160);\n    --mint-500: oklch(.80 .15 160);   --mint-400: oklch(.86 .12 160);\n    --mint-300: oklch(.91 .09 160);   --mint-100: oklch(.96 .05 160);\n    --gold-500: oklch(.83 .13 85);    --coral-500: oklch(.70 .16 22);\n  }\n}\n\n#kpj {\n  position: relative; z-index: 1;\n  width: var(--w);\n  color: var(--text);\n  font: var(--fs-body)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;\n  font-variant-numeric: tabular-nums;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n  -webkit-tap-highlight-color: transparent;\n}\n#kpj * { box-sizing: border-box; }\n#kpj button { font: inherit; color: inherit; cursor: pointer; background: transparent; border: 0; }\n#kpj svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColor; stroke-width: 1.5; }\n#kpj :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }\n\n/* --- collapsed pill ---------------------------------------------------- */\n#kpj button#kpj-pill {\n  display: flex; align-items: center; gap: 8px;\n  width: max-content; max-width: 100%; min-height: 32px;\n  padding: 0 14px 0 11px; border-radius: 999px;\n  border: var(--stroke-w) solid transparent;\n  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;\n  color: var(--text-dim); user-select: none;\n  transition: border-color 160ms var(--ease), color 160ms var(--ease), transform 150ms ease-out;\n}\n#kpj button#kpj-pill:active { transform: scale(.96); }\n#kpj.open button#kpj-pill { display: none; }\n\n/* --- panel ------------------------------------------------------------- */\n#kpj-stack { position: relative; filter: drop-shadow(0 12px 22px rgb(0 0 0 / .45)); }\n\n#kpj-panel {\n  display: none; position: relative; z-index: 2; border-radius: var(--r-outer);\n  border: var(--stroke-w) solid transparent;\n  overscroll-behavior: contain;\n  transform-origin: bottom left;           /* opens from the pill, not the centre */\n}\n#kpj.open #kpj-panel {\n  display: block;\n  opacity: 1; transform: scale(1) translateY(0);\n  transition: opacity 250ms var(--ease), transform 250ms var(--ease), display 250ms allow-discrete;\n}\n@starting-style {\n  #kpj.open #kpj-panel { opacity: 0; transform: scale(.98) translateY(8px); }\n}\n/* exit: shorter and smaller than the enter */\n#kpj.open.closing #kpj-panel {\n  opacity: 0; transform: scale(.99) translateY(4px);\n  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exits run shorter */\n}\n\n@keyframes kpj-say { from { opacity: 0; filter: blur(4px); transform: translateY(4px); } }\n\n/* a row only animates the first time it appears */\n.kpj-who-row.kpj-in { animation: kpj-row 300ms ease-out both; }\n@keyframes kpj-row { from { opacity: 0; filter: blur(4px); transform: translateY(12px); } }\n\n#kpj-top {\n  display: flex; align-items: center; gap: 8px; user-select: none;\n  padding: var(--pad-head) var(--pad); border-bottom: var(--stroke-w) solid var(--border-subtle);\n}\n#kpj-id { flex: 1; min-width: 0; display: grid; gap: 1px; }\n#kpj-kicker-row { position: relative; display: flex; align-items: center; gap: 5px; }\n#kpj-kicker {\n  font-size: var(--fs-kicker); line-height: 1.1; letter-spacing: .18em;\n  text-transform: uppercase; color: var(--text-faint);\n}\n#kpj button#kpj-info {\n  width: 15px; height: 15px; display: grid; place-items: center; padding: 0;\n  border-radius: 50%; color: var(--text-faint);\n  transition: color 140ms var(--ease);\n}\n#kpj button#kpj-info svg { width: 11px; height: 11px; }\n#kpj-name-input {                                  /* underline only, no box */\n  width: 100%; min-width: 0; min-height: 21px; padding: 0 0 2px;\n  font: inherit; color: var(--text); background: transparent;\n  border: 0; border-bottom: var(--stroke-w) solid transparent; border-radius: 0;\n  text-overflow: ellipsis;\n  transition: border-color 140ms var(--ease), box-shadow 140ms var(--ease);\n}\n#kpj-name-input::placeholder { color: var(--text-faint); }\n#kpj-name-input:focus {\n  outline: none; border-bottom-color: var(--accent);\n  box-shadow: 0 1px 0 0 var(--accent);             /* a 2px underline without a layout shift */\n}\n\n/* info tooltip */\n#kpj-tip {\n  position: absolute; bottom: calc(100% + 7px); inset-inline-start: -2px; z-index: 4;\n  width: 186px; padding: 7px 9px; border-radius: var(--r-inner);\n  border: var(--stroke-w) solid transparent; color: var(--text-dim);\n  font-size: var(--fs-label); line-height: 1.4; text-wrap: pretty;\n  transform-origin: bottom left;\n  opacity: 0; visibility: hidden; transform: scale(.97) translateY(2px);\n  transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 150ms;\n  pointer-events: none;\n}\n#kpj-info:hover + #kpj-tip, #kpj-info:focus-visible + #kpj-tip {\n  opacity: 1; visibility: visible; transform: none;\n}\n#kpj-top button {\n  width: 30px; height: 30px; display: grid; place-items: center;\n  border-radius: 6px; color: var(--text-faint);\n  transition: color 140ms var(--ease), background-color 140ms var(--ease), transform 150ms ease-out;\n}\n#kpj-top button:active { transform: scale(.96); }\n\n.kpj-dot {\n  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;\n  background: var(--text-faint);\n  transition: background-color 150ms var(--ease), box-shadow 150ms var(--ease);\n}\n.kpj-dot.live { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent); }\n.kpj-dot.wait { background: var(--warn); }\n.kpj-dot.dead { background: var(--bad); }\n\n/* --- who is here ------------------------------------------------------- */\n#kpj-who { padding: var(--pad) var(--pad) 2px; display: grid; gap: var(--gap-row); }\n.kpj-who-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; }\n.kpj-who-row .kpj-dot { align-self: center; }\n.kpj-who-row b {\n  font-weight: 400; color: var(--text);\n  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\n}\n.kpj-who-row.kpj-away b { color: var(--text-dim); }\n#kpj button.kpj-invite {\n  padding: 0; font: inherit; color: var(--text-faint);\n  text-decoration: underline dotted; text-underline-offset: 3px;\n  text-decoration-thickness: from-font;\n  transition: color 150ms ease-out, text-decoration-color 150ms ease-out;\n}\n.kpj-me { font-style: normal; font-size: var(--fs-label); color: var(--text-faint); }\n.kpj-who-row span {\n  margin-inline-start: auto; padding-inline-start: 8px;\n  font-size: var(--fs-label); letter-spacing: .04em;\n  color: var(--text-dim); white-space: nowrap;\n}\n.kpj-who-row.kpj-same span { color: var(--accent); }\n\n/* --- actions ----------------------------------------------------------- */\n#kpj-acts { padding: var(--pad); }\n#kpj-cta {\n  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch;\n  min-height: var(--cta-h); border-radius: var(--r-inner); overflow: hidden;\n  background: color-mix(in oklab, var(--accent) 18%, transparent);\n  border: var(--stroke-w) solid color-mix(in oklab, var(--accent) 38%, transparent);\n  transition: background-color 160ms var(--ease), transform 150ms ease-out, box-shadow 150ms ease-out;\n}\n#kpj-cta:has(#kpj-go:active) { transform: scale(.96); }\n#kpj-cta:has(#kpj-go:disabled) { opacity: .45; }\n#kpj-size {\n  padding: 0 19px 0 9px; border: 0; border-radius: 0;\n  border-inline-end: var(--stroke-w) solid color-mix(in oklab, var(--accent) 28%, transparent);\n  background-color: color-mix(in oklab, var(--accent) 10%, transparent);\n  color: var(--accent-ink);\n  font: inherit; font-size: var(--fs-label); cursor: pointer;\n  appearance: none; -webkit-appearance: none;\n  background-image: url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23d7fff0' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M3 4.6 6 7.6l3-3'/%3E%3C/svg%3E\");\n  background-repeat: no-repeat; background-position: right 6px center; background-size: 10px;\n  transition: background-color 140ms var(--ease);\n}\n#kpj-size:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n#kpj-size option { background: var(--bg-2); color: var(--text); }\n#kpj button#kpj-go {\n  min-height: calc(var(--cta-h) - 2px); border: 0; border-radius: 0; background: transparent;\n  color: var(--accent-ink);\n  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;\n}\n#kpj button#kpj-go:disabled { cursor: default; }\n\n/* --- toast ------------------------------------------------------------- */\n#kpj-toast {\n  position: fixed; inset-inline-start: 14px; bottom: 60px; z-index: 2147483001;\n  pointer-events: none; max-width: 272px;\n  padding: 9px 12px; border-radius: var(--r-inner);\n  background: var(--bg); border: 1px solid var(--edge); color: var(--text);\n  font: var(--fs-label)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;\n  text-wrap: pretty; box-shadow: 0 10px 26px rgb(0 0 0 / .5);\n  opacity: 0; transform: translateY(4px);\n  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exit */\n}\n#kpj-toast.show {\n  opacity: 1; transform: none;\n  transition: opacity 250ms var(--ease), transform 250ms var(--ease);  /* enter */\n}\n#kpj-toast.sticky { pointer-events: auto; cursor: pointer; border-color: var(--edge-strong); }\n\n/* --- input modality ---------------------------------------------------- */\n@media (hover: hover) and (pointer: fine) {\n  #kpj button.kpj-invite:hover { color: var(--text); }\n  #kpj-name-input:hover:not(:focus) { border-bottom-color: var(--edge-input); }\n  #kpj button#kpj-info:hover { color: var(--text); }\n  #kpj button#kpj-pill:hover { border-color: var(--edge-strong); color: var(--text); }\n  #kpj-top button:hover { color: var(--text); background: color-mix(in oklab, var(--edge) 35%, transparent); }\n  #kpj-cta:has(#kpj-go:not(:disabled)):hover { background: color-mix(in oklab, var(--accent) 26%, transparent); }\n  #kpj-size:hover { background-color: color-mix(in oklab, var(--accent) 20%, transparent); }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #kpj *, #kpj-toast { transition-property: opacity, color, background-color, border-color !important; }\n  .kpj-who-row.kpj-in,   @keyframes kpj-fade { from { opacity: 0; } }\n  #kpj.open #kpj-panel, #kpj.open.closing #kpj-panel { transform: none !important; }\n  @starting-style { #kpj.open #kpj-panel { opacity: 0; transform: none; } }\n}\n\n@media (max-width: 720px) { #kpj { inset-inline-start: 8px; bottom: 8px; width: calc(var(--w) - 32px); } }\n\n/* --- depth: a little glass and a little moulding ------------------------ */\n\n#kpj button#kpj-pill {\n  background:\n    linear-gradient(180deg, var(--surface-top), var(--surface) 70%, var(--surface-sunken)) padding-box,\n    var(--stroke) border-box;\n  box-shadow: var(--lip), var(--lift);\n}\n\n#kpj-panel {\n  background:\n    linear-gradient(180deg, var(--surface-top), var(--surface) 55%, var(--surface-sunken)) padding-box,\n    var(--stroke) border-box;\n  box-shadow: var(--lip);\n}\n#kpj-stack { filter: drop-shadow(0 2px 2px rgb(0 0 0 / calc(var(--lift-a) * .7))) drop-shadow(0 11px 18px rgb(0 0 0 / var(--lift-a))); }\n\n#kpj-top { box-shadow: inset 0 -1px 0 rgb(0 0 0 / .25); }\n\n\n/* the one button is a moulded key */\n#kpj-cta {\n  background:\n    linear-gradient(180deg,\n      color-mix(in oklab, var(--accent) 34%, transparent),\n      color-mix(in oklab, var(--accent-deep) 26%, transparent));\n  border-color: color-mix(in oklab, var(--accent) 46%, transparent);\n  box-shadow:\n    inset 0 1px 0 color-mix(in oklab, var(--accent-ink) 34%, transparent),\n    inset 0 -1px 0 rgb(0 0 0 / .25),\n    0 1px 2px rgb(0 0 0 / .35);\n}\n#kpj-cta:has(#kpj-go:active) {\n  transform: translateY(1px);\n  box-shadow: inset 0 2px 5px rgb(0 0 0 / .38);\n}\n#kpj-size {\n  background-color: rgb(0 0 0 / .14);\n  box-shadow: inset -1px 0 0 rgb(0 0 0 / .2);\n}\n\n/* an LED, not a flat circle */\n.kpj-dot.live {\n  background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .55), var(--accent) 62%);\n  box-shadow: 0 0 7px color-mix(in oklab, var(--accent) 55%, transparent),\n              inset 0 0 2px rgb(0 0 0 / .35);\n}\n.kpj-dot.wait { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .5), var(--warn) 62%); }\n.kpj-dot.dead { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .45), var(--bad) 62%); }\n\n#kpj-tip, #kpj-toast {\n  background:\n    linear-gradient(180deg, var(--surface-raised), var(--surface)) padding-box,\n    var(--stroke) border-box;\n  box-shadow: var(--lip), var(--lift);\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #kpj-cta:has(#kpj-go:active) { transform: none; }\n}\n\n/* --- corner smoothing (Chrome's superellipse; plain rounding elsewhere) --- */\n@supports (corner-shape: superellipse(2)) {\n  #kpj button#kpj-pill, #kpj-panel, #kpj-cta, #kpj-tip, #kpj-toast, #kpj-top button {\n    corner-shape: superellipse(var(--corner-k));\n  }\n}\n\n/* the status line lives at the foot of the card */\n#kpj-msg {\n  padding: 0 var(--pad) var(--pad); font-size: var(--fs-label);\n  color: var(--text-faint); text-wrap: pretty; overflow-wrap: anywhere;\n}\n#kpj-msg.kpj-empty { display: none; }\n#kpj-msg.kpj-fresh { animation: kpj-say 300ms ease-out both; }\n\n/* the invite keeps the dot's space so it lines up with the names */\n.kpj-dot.kpj-ghost { visibility: hidden; }\n\n  #kpj.open #kpj-panel { opacity: 1; transform: none; }\n  figure:nth-child(2) #kpj-tip { opacity: 1; visibility: visible; transform: none; }\n</style></head><body><div class=\"grid\"><figure><div class=\"stage\"><div id=\"kpj\" class=\"\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button></div></div><figcaption><b>Collapsed</b>How it sits while you play.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"puffa-boy\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row kpj-same\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>in UCYU</span></div><div class=\"kpj-who-row kpj-same\"><i class=\"kpj-dot live\"></i><b>dave</b><span>with you</span></div><div class=\"kpj-who-row kpj-same\"><i class=\"kpj-dot live\"></i><b>sam</b><span>with you</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">UCYU &middot; 4/6 - going in.</div></div></div></div></div><figcaption><b>Three up</b>A party is however many turn up.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"puffa-boy\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>browsing</span></div><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>dave</b><span>too late</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">dave went to QMLL - following.</div></div></div></div></div><figcaption><b>Apart</b>They started without you.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"puffa-boy\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>browsing</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">Linked - waiting for your friend</div></div></div></div></div><figcaption><b>Alone</b>Nobody there yet.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"\" placeholder=\"name your party\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>browsing</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">Name your party above, same on both machines.</div></div></div></div></div><figcaption><b>First run</b>Nothing to configure but the name.</figcaption></figure></div>\n<style id=\"kpj-override\"></style></body></html>"}, {"id": "0bd5952", "label": "2026-11-22 \u00b7 Krillion Party Joiner: extension, desi", "doc": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><style>\n  :root { color-scheme: dark; }\n  body { margin: 0; padding: 26px 22px 40px; background: #061324;\n    background-image: radial-gradient(900px 500px at 20% -10%, rgba(40,90,150,.35), transparent),\n                      radial-gradient(700px 400px at 90% 10%, rgba(20,70,120,.3), transparent);\n    color: #e8f3ff; font: .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }\n  .grid { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }\n  figure { margin: 0; }\n  .stage { background: rgba(4,12,24,.5); border: 1px dashed rgba(125,180,255,.14);\n    border-radius: 14px; padding: 26px 22px 22px; min-width: 330px; display: flex; justify-content: center; }\n  figcaption { margin-top: 10px; max-width: 330px; font-size: .75rem; color: #9fb6d2; }\n  figcaption b { display: block; color: #e8f3ff; letter-spacing: .09em; font-weight: 400; margin-bottom: 3px; }\n/* Krillion Party Joiner \u2014 panel styles.\n   Tokens shared with the toast, concentric radii, 12px type floor in rem,\n   one press value, reduced-motion and hover gating. */\n\n#kpj, #kpj-toast {\n  /* --- primitives: one neutral ramp, one accent ramp, hue held end to end --- */\n  --navy-950: #040b16;  --navy-900: #081425;  --navy-850: #0d1c31;\n  --navy-800: #122440;  --navy-700: #1b3557;  --navy-600: #2a4a73;\n  --navy-500: #3f6391;  --navy-400: #6d8cb4;  --navy-300: #9db5d3;\n  --navy-200: #c7d9ee;  --navy-100: #e9f3ff;\n  --mint-700: #1c8f67;  --mint-600: #28ad7e;  --mint-500: #35d49a;\n  --mint-400: #5fe0b1;  --mint-300: #9eeed0;  --mint-100: #d7fff0;\n  --gold-500: #f3c457;  --coral-500: #ef6b6b;\n\n  /* --- semantic: every component reads these, never a primitive ---------- */\n  --surface: var(--navy-900);\n  --surface-top: var(--navy-850);\n  --surface-raised: var(--navy-800);\n  --surface-sunken: var(--navy-950);\n  --stroke-w: 1.5px;              /* stroke width, everywhere */\n  --stroke-l: .31;              /* stroke lightness */\n  --stroke-c: .03;             /* stroke chroma */\n  --stroke-h: 248;              /* stroke hue */\n  --stroke-a: .24;              /* stroke alpha */\n  --stroke-h2: 0;             /* second hue, for the gradient stroke */\n  --stroke-mix: 0%;             /* 0% = flat stroke, 100% = full gradient */\n  --stroke-angle: 195deg;\n  --corner-k: 1;                /* 2 = round, 3-5 = squircle, >5 = flatter */\n  --stroke-1: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / var(--stroke-a));\n  --stroke-2: oklch(var(--stroke-l) calc(var(--stroke-c) * 1.6) var(--stroke-h2) / var(--stroke-a));\n  --stroke: linear-gradient(var(--stroke-angle), var(--stroke-1),\n            color-mix(in oklab, var(--stroke-2) var(--stroke-mix), var(--stroke-1)));\n  --border-subtle: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / calc(var(--stroke-a) * .78));\n  --border: var(--stroke-1);\n  --border-input: var(--navy-500);\n  --text: var(--navy-100);\n  --text-dim: var(--navy-300);\n  --text-faint: var(--navy-400);\n  --accent: var(--mint-500);\n  --accent-deep: var(--mint-700);\n  --accent-ink: var(--mint-100);\n  --warn: var(--gold-500);\n  --bad: var(--coral-500);\n\n  /* legacy aliases kept so older rules keep resolving */\n  --bg: var(--surface);\n  --bg-2: var(--surface-raised);\n  --edge: var(--border-subtle);\n  --edge-strong: var(--border);\n  --edge-input: var(--border-input);\n\n  /* --- shape (concentric: outer = inner + padding) --------------------- */\n  --pad: 15px;\n  --pad-head: 8px;        /* header block padding */\n  --gap-row: 5px;         /* between presence rows */\n  --cta-h: 34px;          /* button height */\n  --r-inner: 18px;\n  --r-outer: 20px;\n\n  /* --- type (floor 0.75rem = 12px) ------------------------------------- */\n  --fs-body: .875rem;\n  --fs-label: .8125rem;\n  --fs-kicker: .5938rem;\n\n  /* --- size ------------------------------------------------------------- */\n  --w: 306px;\n\n  --ease: cubic-bezier(.23, 1, .32, 1);\n\n  /* --- depth ------------------------------------------------------------ */\n  --lip-a: .07;          /* top highlight strength */\n  --lift-a: .4;          /* drop shadow strength */\n  --lip: inset 0 1px 0 rgb(255 255 255 / var(--lip-a));\n  --lift: 0 1px 1px rgb(0 0 0 / calc(var(--lift-a) * .875)), 0 8px 18px rgb(0 0 0 / var(--lift-a));\n}\n@supports (color: oklch(0.5 0.1 250)) {\n  #kpj, #kpj-toast {\n    --navy-950: oklch(.14 .028 250);  --navy-900: oklch(.19 .035 250);\n    --navy-850: oklch(.23 .042 250);  --navy-800: oklch(.27 .048 250);\n    --navy-700: oklch(.34 .052 250);  --navy-600: oklch(.44 .056 250);\n    --navy-500: oklch(.54 .062 250);  --navy-400: oklch(.66 .048 250);\n    --navy-300: oklch(.78 .036 250);  --navy-200: oklch(.88 .024 250);\n    --navy-100: oklch(.96 .015 250);\n    --mint-700: oklch(.58 .11 160);   --mint-600: oklch(.68 .13 160);\n    --mint-500: oklch(.80 .15 160);   --mint-400: oklch(.86 .12 160);\n    --mint-300: oklch(.91 .09 160);   --mint-100: oklch(.96 .05 160);\n    --gold-500: oklch(.83 .13 85);    --coral-500: oklch(.70 .16 22);\n  }\n}\n\n#kpj {\n  position: relative; z-index: 1;\n  width: var(--w);\n  color: var(--text);\n  font: var(--fs-body)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;\n  font-variant-numeric: tabular-nums;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n  -webkit-tap-highlight-color: transparent;\n}\n#kpj * { box-sizing: border-box; }\n#kpj button { font: inherit; color: inherit; cursor: pointer; background: transparent; border: 0; }\n#kpj svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColor; stroke-width: 1.5; }\n#kpj :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }\n\n/* --- collapsed pill ---------------------------------------------------- */\n#kpj button#kpj-pill {\n  display: flex; align-items: center; gap: 8px;\n  width: max-content; max-width: 100%; min-height: 32px;\n  padding: 0 14px 0 11px; border-radius: 999px;\n  border: var(--stroke-w) solid transparent;\n  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;\n  color: var(--text-dim); user-select: none;\n  transition: border-color 160ms var(--ease), color 160ms var(--ease), transform 150ms ease-out;\n}\n#kpj button#kpj-pill:active { transform: scale(.96); }\n#kpj.open button#kpj-pill { display: none; }\n\n/* --- panel ------------------------------------------------------------- */\n#kpj-stack { position: relative; filter: drop-shadow(0 12px 22px rgb(0 0 0 / .45)); }\n\n#kpj-panel {\n  display: none; position: relative; z-index: 2; border-radius: var(--r-outer);\n  border: var(--stroke-w) solid transparent;\n  overscroll-behavior: contain;\n  transform-origin: bottom left;           /* opens from the pill, not the centre */\n}\n#kpj.open #kpj-panel {\n  display: block;\n  opacity: 1; transform: scale(1) translateY(0);\n  transition: opacity 250ms var(--ease), transform 250ms var(--ease), display 250ms allow-discrete;\n}\n@starting-style {\n  #kpj.open #kpj-panel { opacity: 0; transform: scale(.98) translateY(8px); }\n}\n/* exit: shorter and smaller than the enter */\n#kpj.open.closing #kpj-panel {\n  opacity: 0; transform: scale(.99) translateY(4px);\n  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exits run shorter */\n}\n\n@keyframes kpj-say { from { opacity: 0; filter: blur(4px); transform: translateY(4px); } }\n\n/* a row only animates the first time it appears */\n.kpj-who-row.kpj-in { animation: kpj-row 300ms ease-out both; }\n@keyframes kpj-row { from { opacity: 0; filter: blur(4px); transform: translateY(12px); } }\n\n#kpj-top {\n  display: flex; align-items: center; gap: 8px; user-select: none;\n  padding: var(--pad-head) var(--pad); border-bottom: var(--stroke-w) solid var(--border-subtle);\n}\n#kpj-id { flex: 1; min-width: 0; display: grid; gap: 1px; }\n#kpj-kicker-row { position: relative; display: flex; align-items: center; gap: 5px; }\n#kpj-kicker {\n  font-size: var(--fs-kicker); line-height: 1.1; letter-spacing: .18em;\n  text-transform: uppercase; color: var(--text-faint);\n}\n#kpj button#kpj-info {\n  width: 15px; height: 15px; display: grid; place-items: center; padding: 0;\n  border-radius: 50%; color: var(--text-faint);\n  transition: color 140ms var(--ease);\n}\n#kpj button#kpj-info svg { width: 11px; height: 11px; }\n#kpj-name-input {                                  /* underline only, no box */\n  width: 100%; min-width: 0; min-height: 21px; padding: 0 0 2px;\n  font: inherit; color: var(--text); background: transparent;\n  border: 0; border-bottom: var(--stroke-w) solid transparent; border-radius: 0;\n  text-overflow: ellipsis;\n  transition: border-color 140ms var(--ease), box-shadow 140ms var(--ease);\n}\n#kpj-name-input::placeholder { color: var(--text-faint); }\n#kpj-name-input:focus {\n  outline: none; border-bottom-color: var(--accent);\n  box-shadow: 0 1px 0 0 var(--accent);             /* a 2px underline without a layout shift */\n}\n\n/* info tooltip */\n#kpj-tip {\n  position: absolute; bottom: calc(100% + 7px); inset-inline-start: -2px; z-index: 4;\n  width: 186px; padding: 7px 9px; border-radius: var(--r-inner);\n  border: var(--stroke-w) solid transparent; color: var(--text-dim);\n  font-size: var(--fs-label); line-height: 1.4; text-wrap: pretty;\n  transform-origin: bottom left;\n  opacity: 0; visibility: hidden; transform: scale(.97) translateY(2px);\n  transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 150ms;\n  pointer-events: none;\n}\n#kpj-info:hover + #kpj-tip, #kpj-info:focus-visible + #kpj-tip {\n  opacity: 1; visibility: visible; transform: none;\n}\n#kpj-top button {\n  width: 30px; height: 30px; display: grid; place-items: center;\n  border-radius: 6px; color: var(--text-faint);\n  transition: color 140ms var(--ease), background-color 140ms var(--ease), transform 150ms ease-out;\n}\n#kpj-top button:active { transform: scale(.96); }\n\n.kpj-dot {\n  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;\n  background: var(--text-faint);\n  transition: background-color 150ms var(--ease), box-shadow 150ms var(--ease);\n}\n.kpj-dot.live { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent); }\n.kpj-dot.wait { background: var(--warn); }\n.kpj-dot.dead { background: var(--bad); }\n\n/* --- who is here ------------------------------------------------------- */\n#kpj-who { padding: var(--pad) var(--pad) 2px; display: grid; gap: var(--gap-row); }\n.kpj-who-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; }\n.kpj-who-row .kpj-dot { align-self: center; }\n.kpj-who-row b {\n  font-weight: 400; color: var(--text);\n  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\n}\n.kpj-who-row.kpj-away b { color: var(--text-dim); }\n#kpj button.kpj-invite {\n  padding: 0; font: inherit; color: var(--text-faint);\n  text-decoration: underline dotted; text-underline-offset: 3px;\n  text-decoration-thickness: from-font;\n  transition: color 150ms ease-out, text-decoration-color 150ms ease-out;\n}\n.kpj-me { font-style: normal; font-size: var(--fs-label); color: var(--text-faint); }\n.kpj-who-row span {\n  margin-inline-start: auto; padding-inline-start: 8px;\n  font-size: var(--fs-label); letter-spacing: .04em;\n  color: var(--text-dim); white-space: nowrap;\n}\n.kpj-who-row.kpj-same span { color: var(--accent); }\n\n/* --- actions ----------------------------------------------------------- */\n#kpj-acts { padding: var(--pad); }\n#kpj-cta {\n  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch;\n  min-height: var(--cta-h); border-radius: var(--r-inner); overflow: hidden;\n  background: color-mix(in oklab, var(--accent) 18%, transparent);\n  border: var(--stroke-w) solid color-mix(in oklab, var(--accent) 38%, transparent);\n  transition: background-color 160ms var(--ease), transform 150ms ease-out, box-shadow 150ms ease-out;\n}\n#kpj-cta:has(#kpj-go:active) { transform: scale(.96); }\n#kpj-cta:has(#kpj-go:disabled) { opacity: .45; }\n#kpj-size {\n  padding: 0 19px 0 9px; border: 0; border-radius: 0;\n  border-inline-end: var(--stroke-w) solid color-mix(in oklab, var(--accent) 28%, transparent);\n  background-color: color-mix(in oklab, var(--accent) 10%, transparent);\n  color: var(--accent-ink);\n  font: inherit; font-size: var(--fs-label); cursor: pointer;\n  appearance: none; -webkit-appearance: none;\n  background-image: url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23d7fff0' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M3 4.6 6 7.6l3-3'/%3E%3C/svg%3E\");\n  background-repeat: no-repeat; background-position: right 6px center; background-size: 10px;\n  transition: background-color 140ms var(--ease);\n}\n#kpj-size:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n#kpj-size option { background: var(--bg-2); color: var(--text); }\n#kpj button#kpj-go {\n  min-height: calc(var(--cta-h) - 2px); border: 0; border-radius: 0; background: transparent;\n  color: var(--accent-ink);\n  font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase;\n}\n#kpj button#kpj-go:disabled { cursor: default; }\n\n/* --- toast ------------------------------------------------------------- */\n#kpj-toast {\n  position: fixed; inset-inline-start: 14px; bottom: 60px; z-index: 2147483001;\n  pointer-events: none; max-width: 272px;\n  padding: 9px 12px; border-radius: var(--r-inner);\n  background: var(--bg); border: 1px solid var(--edge); color: var(--text);\n  font: var(--fs-label)/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;\n  text-wrap: pretty; box-shadow: 0 10px 26px rgb(0 0 0 / .5);\n  opacity: 0; transform: translateY(4px);\n  transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exit */\n}\n#kpj-toast.show {\n  opacity: 1; transform: none;\n  transition: opacity 250ms var(--ease), transform 250ms var(--ease);  /* enter */\n}\n#kpj-toast.sticky { pointer-events: auto; cursor: pointer; border-color: var(--edge-strong); }\n\n/* --- input modality ---------------------------------------------------- */\n@media (hover: hover) and (pointer: fine) {\n  #kpj button.kpj-invite:hover { color: var(--text); }\n  #kpj-name-input:hover:not(:focus) { border-bottom-color: var(--edge-input); }\n  #kpj button#kpj-info:hover { color: var(--text); }\n  #kpj button#kpj-pill:hover { border-color: var(--edge-strong); color: var(--text); }\n  #kpj-top button:hover { color: var(--text); background: color-mix(in oklab, var(--edge) 35%, transparent); }\n  #kpj-cta:has(#kpj-go:not(:disabled)):hover { background: color-mix(in oklab, var(--accent) 26%, transparent); }\n  #kpj-size:hover { background-color: color-mix(in oklab, var(--accent) 20%, transparent); }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #kpj *, #kpj-toast { transition-property: opacity, color, background-color, border-color !important; }\n  .kpj-who-row.kpj-in,   @keyframes kpj-fade { from { opacity: 0; } }\n  #kpj.open #kpj-panel, #kpj.open.closing #kpj-panel { transform: none !important; }\n  @starting-style { #kpj.open #kpj-panel { opacity: 0; transform: none; } }\n}\n\n@media (max-width: 720px) { #kpj { inset-inline-start: 8px; bottom: 8px; width: calc(var(--w) - 32px); } }\n\n/* --- depth: a little glass and a little moulding ------------------------ */\n\n#kpj button#kpj-pill {\n  background:\n    linear-gradient(180deg, var(--surface-top), var(--surface) 70%, var(--surface-sunken)) padding-box,\n    var(--stroke) border-box;\n  box-shadow: var(--lip), var(--lift);\n}\n\n#kpj-panel {\n  background:\n    linear-gradient(180deg, var(--surface-top), var(--surface) 55%, var(--surface-sunken)) padding-box,\n    var(--stroke) border-box;\n  box-shadow: var(--lip);\n}\n#kpj-stack { filter: drop-shadow(0 2px 2px rgb(0 0 0 / calc(var(--lift-a) * .7))) drop-shadow(0 11px 18px rgb(0 0 0 / var(--lift-a))); }\n\n#kpj-top { box-shadow: inset 0 -1px 0 rgb(0 0 0 / .25); }\n\n\n/* the one button is a moulded key */\n#kpj-cta {\n  background:\n    linear-gradient(180deg,\n      color-mix(in oklab, var(--accent) 34%, transparent),\n      color-mix(in oklab, var(--accent-deep) 26%, transparent));\n  border-color: color-mix(in oklab, var(--accent) 46%, transparent);\n  box-shadow:\n    inset 0 1px 0 color-mix(in oklab, var(--accent-ink) 34%, transparent),\n    inset 0 -1px 0 rgb(0 0 0 / .25),\n    0 1px 2px rgb(0 0 0 / .35);\n}\n#kpj-cta:has(#kpj-go:active) {\n  transform: translateY(1px);\n  box-shadow: inset 0 2px 5px rgb(0 0 0 / .38);\n}\n#kpj-size {\n  background-color: rgb(0 0 0 / .14);\n  box-shadow: inset -1px 0 0 rgb(0 0 0 / .2);\n}\n\n/* an LED, not a flat circle */\n.kpj-dot.live {\n  background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .55), var(--accent) 62%);\n  box-shadow: 0 0 7px color-mix(in oklab, var(--accent) 55%, transparent),\n              inset 0 0 2px rgb(0 0 0 / .35);\n}\n.kpj-dot.wait { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .5), var(--warn) 62%); }\n.kpj-dot.dead { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .45), var(--bad) 62%); }\n\n#kpj-tip, #kpj-toast {\n  background:\n    linear-gradient(180deg, var(--surface-raised), var(--surface)) padding-box,\n    var(--stroke) border-box;\n  box-shadow: var(--lip), var(--lift);\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #kpj-cta:has(#kpj-go:active) { transform: none; }\n}\n\n/* --- corner smoothing (Chrome's superellipse; plain rounding elsewhere) --- */\n@supports (corner-shape: superellipse(2)) {\n  #kpj button#kpj-pill, #kpj-panel, #kpj-cta, #kpj-tip, #kpj-toast, #kpj-top button {\n    corner-shape: superellipse(var(--corner-k));\n  }\n}\n\n/* the status line lives at the foot of the card */\n#kpj-msg {\n  padding: 0 var(--pad) var(--pad); font-size: var(--fs-label);\n  color: var(--text-faint); text-wrap: pretty; overflow-wrap: anywhere;\n}\n#kpj-msg.kpj-empty { display: none; }\n#kpj-msg.kpj-fresh { animation: kpj-say 300ms ease-out both; }\n\n/* the invite keeps the dot's space so it lines up with the names */\n.kpj-dot.kpj-ghost { visibility: hidden; }\n\n  #kpj.open #kpj-panel { opacity: 1; transform: none; }\n  figure:nth-child(2) #kpj-tip { opacity: 1; visibility: visible; transform: none; }\n</style></head><body><div class=\"grid\"><figure><div class=\"stage\"><div id=\"kpj\" class=\"\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button></div></div><figcaption><b>Collapsed</b>How it sits while you play.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"puffa-boy\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row kpj-same\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>in UCYU</span></div><div class=\"kpj-who-row kpj-same\"><i class=\"kpj-dot live\"></i><b>dave</b><span>with you</span></div><div class=\"kpj-who-row kpj-same\"><i class=\"kpj-dot live\"></i><b>sam</b><span>with you</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">UCYU &middot; 4/6 - going in.</div></div></div></div></div><figcaption><b>Three up</b>A party is however many turn up.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"puffa-boy\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>browsing</span></div><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>dave</b><span>too late</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">dave went to QMLL - following.</div></div></div></div></div><figcaption><b>Apart</b>They started without you.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"puffa-boy\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>browsing</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">Linked - waiting for your friend</div></div></div></div></div><figcaption><b>Alone</b>Nobody there yet.</figcaption></figure>\n<figure><div class=\"stage\"><div id=\"kpj\" class=\"open\"><button id=\"kpj-pill\"><i class=\"kpj-dot live\"></i><span>Party &middot; 2</span></button><div id=\"kpj-stack\"><div id=\"kpj-panel\"><div id=\"kpj-top\"><div id=\"kpj-id\"><div id=\"kpj-kicker-row\"><span id=\"kpj-kicker\">Party</span><button id=\"kpj-info\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 7.2v3.6\" stroke-linecap=\"round\"/><path d=\"M8 4.8v.5\" stroke-linecap=\"round\"/></svg></button><span id=\"kpj-tip\">Both of you type the same party name. Only room codes travel.</span></div><input id=\"kpj-name-input\" type=\"text\" value=\"\" placeholder=\"name your party\" aria-label=\"Party name\"></div><button id=\"kpj-close\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 8h9\" stroke-linecap=\"round\"/></svg></button></div><div id=\"kpj-who\"><div class=\"kpj-who-row\"><i class=\"kpj-dot live\"></i><b>puffa</b><em class=\"kpj-me\">(you)</em><span>browsing</span></div><div class=\"kpj-who-row kpj-away\"><i class=\"kpj-dot kpj-ghost\"></i><button class=\"kpj-invite\" type=\"button\">Invite +</button></div></div><div id=\"kpj-acts\"><div id=\"kpj-cta\"><select id=\"kpj-size\"><option>4-6</option></select><button id=\"kpj-go\">Find a room</button></div></div><div id=\"kpj-msg\">Name your party above, same on both machines.</div></div></div></div></div><figcaption><b>First run</b>Nothing to configure but the name.</figcaption></figure></div>\n<style id=\"kpj-override\"></style></body></html>"}];
 const PROPS = [{"k": "width", "label": "Width", "kind": "range", "min": 0, "max": 420, "step": 2, "unit": "px", "css": "width", "info": "How wide the element is. 0 leaves it as the layout decides."}, {"k": "height", "label": "Height", "kind": "range", "min": 0, "max": 120, "step": 1, "unit": "px", "css": "min-height", "info": "Smallest height it can be; content can still push it taller."}, {"k": "padding", "label": "Padding", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "padding", "info": "Space inside the element, between its edge and its content."}, {"k": "margin", "label": "Margin", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "margin", "info": "Space outside the element, pushing its neighbours away."}, {"k": "gap", "label": "Gap", "kind": "range", "min": 0, "max": 30, "step": 1, "unit": "px", "css": "gap", "info": "Space between this element's children. Only bites on rows and stacks."}, {"k": "radius", "label": "Corner radius", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "border-radius", "info": "How round the corners are."}, {"k": "corner", "label": "Corner smoothing", "kind": "range", "min": 0.5, "max": 8, "step": 0.1, "unit": "", "css": "corner-shape", "info": "2 is a plain round corner, 4 a squircle, 1 a straight chamfer."}, {"k": "fs", "label": "Font size", "kind": "range", "min": 8, "max": 24, "step": 0.5, "unit": "px", "css": "font-size", "info": "Text size inside this element."}, {"k": "ls", "label": "Letter spacing", "kind": "range", "min": -0.02, "max": 0.3, "step": 0.005, "unit": "em", "css": "letter-spacing", "info": "Space between letters. Uppercase labels want more."}, {"k": "sw", "label": "Stroke width", "kind": "range", "min": 0, "max": 6, "step": 0.5, "unit": "px", "css": "border-width", "info": "Thickness of the border on every side."}, {"k": "opacity", "label": "Opacity", "kind": "range", "min": 0, "max": 1, "step": 0.01, "unit": "", "css": "opacity", "info": "Transparency of the whole element, contents included."}, {"k": "shadow", "label": "Shadow", "kind": "range", "min": 0, "max": 40, "step": 1, "unit": "px", "css": "box-shadow", "info": "Drop shadow depth beneath the element."}, {"k": "color", "label": "Text colour", "kind": "color", "min": 0, "max": 0, "step": 0, "unit": "", "css": "color", "info": "Colour of the text in this element."}, {"k": "bg", "label": "Background", "kind": "color", "min": 0, "max": 0, "step": 0, "unit": "", "css": "background", "info": "Flat fill behind the element. Replaces its gradient."}, {"k": "stroke", "label": "Stroke colour", "kind": "color", "min": 0, "max": 0, "step": 0, "unit": "", "css": "border-color", "info": "Colour of the border."}];
 const OVERRIDE = {"all": "all", "#kpj-panel": "#kpj #kpj-panel", "#kpj-pill": "#kpj button#kpj-pill", "#kpj-top": "#kpj #kpj-top", "#kpj-name-input": "#kpj #kpj-name-input", "#kpj-kicker": "#kpj #kpj-kicker", "#kpj-who": "#kpj #kpj-who", ".kpj-invite": "#kpj button.kpj-invite", "#kpj-cta": "#kpj #kpj-cta", "#kpj-go": "#kpj button#kpj-go", "#kpj-size": "#kpj #kpj-size", "#kpj-msg": "#kpj #kpj-msg", "#kpj-tip": "#kpj #kpj-tip"};
 const SEA = [[950,.14,.028],[900,.19,.035],[850,.23,.042],[800,.27,.048],[700,.34,.052],
@@ -470,8 +94,20 @@ const ACC = [[700,.58,.11],[600,.68,.13],[500,.80,.15],[400,.86,.12],[300,.91,.0
 const el = id => document.getElementById(id);
 const sliders = [...document.querySelectorAll('#lab input[type=range]')];
 const target = el('lab-target');
-const style = document.createElement('style');
-document.head.appendChild(style);
+const stage = el('stage');
+const verSel = el('lab-version');
+let doc = null;                         // the live document inside the stage
+
+function loadVersion(id) {
+  const f = FRAMES.find(x => x.id === id) || FRAMES[0];
+  stage.srcdoc = f.doc;
+  el('lab-ver-note').textContent = id === 'working' ? 'live' : 'old';
+  stage.onload = () => {
+    doc = stage.contentDocument;
+    apply();
+    if (target.value !== 'all') buildInspector(target.value);
+  };
+}
 
 const picks = [...document.querySelectorAll('#lab input[type=color]')];
 const base = {};                       // slider defaults, straight from the stylesheet
@@ -584,7 +220,7 @@ const rgbToHex = v => {
 };
 
 function buildInspector(sel) {
-  const node = document.querySelector(sel);
+  const node = doc && doc.querySelector(sel);
   const box = el('lab-el-rows');
   box.innerHTML = '';
   if (!node) { box.textContent = 'Not in view.'; return; }
@@ -595,7 +231,7 @@ function buildInspector(sel) {
     if (p.kind === 'color') {
       seed = saved ?? rgbToHex(cs[p.css === 'background' ? 'backgroundColor' : p.css.replace(/-(.)/g, (_, c) => c.toUpperCase())]);
     } else if (p.k === 'corner') {
-      seed = saved ?? (cs.cornerShape?.match(/[\d.]+/)?.[0] ?? 2);
+      seed = saved ?? ((cs.cornerShape || '').match(/[\d.]+/)?.[0] ?? 2);
     } else if (p.k === 'shadow') {
       seed = saved ?? 0;
     } else {
@@ -623,8 +259,12 @@ function buildInspector(sel) {
 }
 
 function apply() {
-  style.textContent = css();
-  el('lab-out').textContent = css();
+  const out = css();
+  if (doc) {
+    const tag = doc.getElementById('kpj-override');
+    if (tag) tag.textContent = out;
+  }
+  el('lab-out').textContent = out;
   try { localStorage.setItem('kpj-lab', JSON.stringify({ state, scoped, elOver })); } catch {}
 }
 
@@ -687,8 +327,9 @@ for (const c of picks) {
   });
 }
 target.addEventListener('change', refresh);
+verSel.addEventListener('change', () => loadVersion(verSel.value));
 refresh();
-apply();
+loadVersion(verSel.value);
 
 el('lab-note').textContent = CSS.supports('corner-shape: superellipse(2)')
   ? 'Corner smoothing is live in this browser.'
