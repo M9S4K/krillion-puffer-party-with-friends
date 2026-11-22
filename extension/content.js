@@ -141,7 +141,7 @@
               ${SIZES.map(o => `<li role="option" id="kpj-size-${o.v}" data-v="${o.v}" aria-selected="false">${o.label}</li>`).join("")}
             </ul>
           </div>
-          <button id="kpj-go" type="button"><span id="kpj-go-txt">Find room</span><i class="kpj-fill" aria-hidden="true"><span>Find room</span></i></button>
+          <button id="kpj-go" type="button"><span id="kpj-go-txt">Find room</span><i class="kpj-fill" aria-hidden="true"></i></button>
           </div>
         </div>
         <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log"></button>
@@ -160,7 +160,6 @@
       sizeTxt: root.querySelector("#kpj-size-txt"),
       sizeMenu: root.querySelector("#kpj-size-menu"),
       goTxt: root.querySelector("#kpj-go-txt"),
-      goMirror: root.querySelector("#kpj-go .kpj-fill span"),
       msg: root.querySelector("#kpj-msg"),
       party: root.querySelector("#kpj-name-input"),
       link: root.querySelector("#kpj-link"),
@@ -396,7 +395,7 @@
     // all of you in one room already? moving means dragging everyone out, so make it deliberate
     const together = !!mine && mates.length > 0 && mates.every(p => p.room === mine);
     el.go.dataset.hold = together ? "1" : "";
-    el.goTxt.textContent = el.goMirror.textContent = together ? "Hold to move" : "Find room";
+    el.goTxt.textContent = together ? "Hold to move" : "Find room";
     el.go.disabled = !cfg.enabled || !cfg.party;
 
     // only when there is something to do about it: the rest is on the dots and the cue

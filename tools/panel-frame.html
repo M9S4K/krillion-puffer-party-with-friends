@@ -29,7 +29,7 @@
       </button>
       <ul id="kpj-size-menu" role="listbox" aria-label="Room size" tabindex="-1" hidden></ul>
     </div>
-    <button id="kpj-go" type="button"><span id="kpj-go-txt">Find room</span><i class="kpj-fill" aria-hidden="true"><span>Find room</span></i></button>
+    <button id="kpj-go" type="button"><span id="kpj-go-txt">Find room</span><i class="kpj-fill" aria-hidden="true"></i></button>
   </div></div>
   <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log"></button>
 </div></div></div>
@@ -51,7 +51,6 @@ const api = {
   say(t){ $("#kpj-msg").textContent = t; },
   key(label, {hold=false, disabled=false, fill=null}={}){
     $("#kpj-go-txt").textContent = label;
-    $("#kpj-go .kpj-fill span").textContent = label;
     $("#kpj-go").dataset.hold = hold ? "1" : "";
     $("#kpj-go").disabled = disabled;
     if (fill !== null) $("#kpj-go .kpj-fill").style.clipPath = `inset(0 ${fill} 0 0)`;

@@ -84,6 +84,7 @@
   --font-status: "KPJ VT323", ui-monospace, SFMono-Regular, Menlo, monospace;
   --fs-name: 1rem;                /* the party name and each player's name */
   --fs-status: 1rem;              /* the footer line, in the pixel face */
+  --fs-toast: 1rem;               /* the toast under the card */
   --fs-body: .875rem;
   --fs-label: .8125rem;
   --fs-kicker: .5938rem;
@@ -367,19 +368,13 @@
   letter-spacing: .08em; text-transform: uppercase;
   transition: filter 140ms var(--ease);
 }
-/* hold to move: a white panel wipes across the key, carrying its own copy of
-   the label in dark ink, so the words stay readable on both sides of the edge */
+/* hold to move: a plain white wipe across the key */
 #kpj button#kpj-go { display: grid; place-items: center; }
 #kpj-go .kpj-fill {
   position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
-  display: grid; place-items: center;          /* the same box, so the copy lands exactly on top */
-  background: rgb(255 255 255 / .9);
+  background: rgb(255 255 255 / .1);
   clip-path: inset(0 100% 0 0);
   transition: clip-path 200ms ease-out;        /* the snap back when you let go */
-}
-#kpj-go .kpj-fill span {
-  color: var(--navy-950);
-  letter-spacing: inherit; text-transform: inherit; font: inherit;
 }
 #kpj-go.kpj-holding .kpj-fill {
   clip-path: inset(0 0 0 0);
@@ -394,7 +389,7 @@
   pointer-events: none;
   padding: 9px 12px; border-radius: var(--r-inner);
   background: var(--bg); border: 1px solid var(--edge); color: var(--text);
-  font: var(--fs-label)/1.45 var(--font-ui);
+  font: var(--fs-toast)/1.4 var(--font-ui);
   text-wrap: pretty; box-shadow: 0 10px 26px rgb(0 0 0 / .5);
   opacity: 0; transform: translateY(4px);
   transition: opacity 150ms ease-out, transform 150ms ease-out;   /* exit */
