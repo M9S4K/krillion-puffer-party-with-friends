@@ -7,9 +7,18 @@
   <div id="kpj-top">
     <div id="kpj-id">
       <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Type out any name and ask your friends to type it in exactly to join the same party</span></div>
-      <input id="kpj-name-input" type="text" value="puffa-trench-8471" aria-label="Party name" placeholder="name your party" spellcheck="false">
+      <div id="kpj-name-row">
+        <input id="kpj-name-input" type="text" value="puffa-trench-8471" aria-label="Party name" placeholder="name your party" spellcheck="false">
+        <i id="kpj-link" data-cue="off" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.4 6.6 11.5 12.5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>
+      </div>
     </div>
+    <button id="kpj-set" title="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h6.2M13 5.5h.5M2.5 10.5h2.7M9.5 10.5h4" stroke-linecap="round"/><circle cx="10.8" cy="5.5" r="1.7"/><circle cx="7.3" cy="10.5" r="1.7"/></svg></button>
     <button id="kpj-close" title="Hide" aria-label="Hide panel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button>
+    <div id="kpj-settings" role="dialog" aria-label="Settings" hidden>
+      <label><input type="checkbox" id="kpj-enabled" checked><span>Keep my party linked</span></label>
+      <label><input type="checkbox" id="kpj-follow" checked><span>Follow my party into rooms</span></label>
+      <label><input type="checkbox" id="kpj-autoSeat" checked><span>Take my seat automatically</span></label>
+    </div>
   </div>
   <div id="kpj-who"></div>
   <div id="kpj-acts"><div id="kpj-cta">
@@ -20,9 +29,9 @@
       </button>
       <ul id="kpj-size-menu" role="listbox" aria-label="Room size" tabindex="-1" hidden></ul>
     </div>
-    <button id="kpj-go" type="button"><i class="kpj-fill" aria-hidden="true"></i><span id="kpj-go-txt">Find room</span></button>
+    <button id="kpj-go" type="button"><span id="kpj-go-txt">Find room</span><i class="kpj-fill" aria-hidden="true"><span>Find room</span></i></button>
   </div></div>
-  <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log">Linked - waiting for your friend</button>
+  <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log"></button>
 </div></div></div>
 <script type="module">
 import { STATES } from "./panel-states.js";
@@ -31,6 +40,8 @@ const SIZES=[["any","Any"],["2","1v1"],["3","3s"],["6","4-6"],["10","8-10"],["12
 $("#kpj-size-menu").innerHTML=SIZES.map(([v,l])=>`<li role="option" id="kpj-size-${v}" data-v="${v}" aria-selected="${v==="6"}">${l}</li>`).join("");
 
 const api = {
+  cue(state){ $("#kpj-link").dataset.cue = state; },
+  settings(open){ $("#kpj-settings").hidden = !open; $("#kpj-set").setAttribute("aria-expanded", String(open)); },
   rows(list){                                  // [name, me, status, cls]
     $("#kpj-who").innerHTML = list.map(([n,me,st,cls=""]) =>
       `<div class="kpj-who-row ${cls}${me?" kpj-self":""}"><i class="kpj-dot live"></i><b>${n}</b>${
@@ -40,6 +51,7 @@ const api = {
   say(t){ $("#kpj-msg").textContent = t; },
   key(label, {hold=false, disabled=false, fill=null}={}){
     $("#kpj-go-txt").textContent = label;
+    $("#kpj-go .kpj-fill span").textContent = label;
     $("#kpj-go").dataset.hold = hold ? "1" : "";
     $("#kpj-go").disabled = disabled;
     if (fill !== null) $("#kpj-go .kpj-fill").style.clipPath = `inset(0 ${fill} 0 0)`;
@@ -51,13 +63,14 @@ const api = {
              for (const [k,v] of [["opacity","1"],["visibility","visible"],["transform","none"]]) t.style.setProperty(k,v,"important"); },
   party(v){ $("#kpj-name-input").value = v; },
   dot(state){ document.querySelectorAll(".kpj-dot:not(.kpj-ghost)").forEach(d=>d.className="kpj-dot "+state); },
+  msgHidden(){ $("#kpj-msg").textContent = ""; },
   pill(txt){ $("#kpj-pill-txt").textContent = txt; },
   collapse(){ $("#kpj").classList.remove("open"); },
   toast(text, sticky=false){
     const t=document.createElement("div"); t.id="kpj-toast"; t.setAttribute("role","status");
     t.textContent = sticky ? text + "  (click to dismiss)" : text;
     t.className = "show" + (sticky ? " sticky" : "");
-    document.documentElement.append(t);
+    $("#kpj").append(t);                        // under the card, as the extension does it
   }
 };
 const key = new URLSearchParams(location.search).get("s") || "linked-alone";

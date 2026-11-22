@@ -25,62 +25,76 @@ export const STATES = {
                   a.key("Find room", { disabled: true });
                   a.say("Name your party above, same on both machines."); } },
   "connecting": { group: "Setup", cap: "Connecting",
-    when: "Name typed, the socket is still opening, or it dropped and is retrying.",
-    build: a => { a.rows([ME]); a.dot("wait"); a.say("Connecting…"); } },
+    when: "A spinner sits beside the party name while the socket opens. No footer line.",
+    build: a => { a.rows([ME]); a.dot("wait"); a.cue("connecting"); a.msgHidden(); } },
+  "connected": { group: "Setup", cap: "Just connected",
+    when: "The spinner becomes a check, which fades after 1.6s. Your dot turns green.",
+    build: a => { a.rows([ME]); a.cue("ok"); a.msgHidden(); } },
+  "settings": { group: "Setup", cap: "Settings", tall: true,
+    when: "The gear in the header. Three switches, no separate page.",
+    build: a => { a.rows([ME]); a.msgHidden(); a.settings(true); } },
   "paused": { group: "Setup", cap: "Paused",
     when: "Following switched off. Nothing is sent and nothing is followed.",
     build: a => { a.rows([ME]); a.dot("dead"); a.key("Find room", { disabled: true });
                   a.say("Paused - nothing is sent or followed."); } },
   "linked-alone": { group: "Setup", cap: "Linked, alone",
     when: "The resting state: socket up, nobody else on the topic yet.",
-    build: a => { a.rows([ME]); a.say("Linked - waiting for your friend"); } },
+    build: a => { a.rows([ME]); a.msgHidden(); } },
   "linked-group": { group: "Setup", cap: "Linked, friend here",
     when: "Someone else is on the same party name.",
-    build: a => { a.rows([ME, ["Finum", 0, "browsing"]]); a.say("Linked · " + PARTY); } },
+    build: a => { a.rows([ME, ["Finum", 0, "browsing"]]); a.msgHidden(); } },
 
   /* ---- who is here --------------------------------------------------- */
   "friend-browsing": { group: "Presence", cap: "Friend browsing",
     when: "They have the extension open but are in no room.",
-    build: a => { a.rows([ME, ["Finum", 0, "browsing"]]); a.say("Linked · " + PARTY); } },
+    build: a => { a.rows([ME, ["Finum", 0, "browsing"]]); a.msgHidden(); } },
   "friend-playing": { group: "Presence", cap: "Friend playing",
     when: "They are in a room and you are not. Press the key to chase a lobby.",
-    build: a => { a.rows([ME, ["Finum", 0, "playing"]]); a.say("Linked · " + PARTY); } },
+    build: a => { a.rows([ME, ["Finum", 0, "playing"]]); a.msgHidden(); } },
   "too-late": { group: "Presence", cap: "Too late",
     when: "You are both in rooms, but different ones.",
     build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "too late"]]);
-                  a.say("Linked · " + PARTY); } },
+                  a.msgHidden(); } },
   "together": { group: "Presence", cap: "Together",
     when: "Everyone the relay can hear is in your room. The key changes mode.",
     build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"]]);
                   a.key("Hold to move", { hold: true });
-                  a.say("GNFS · 4/6 - you are both in."); } },
+                  a.msgHidden(); } },
   "crowd": { group: "Presence", cap: "Four of you",
     when: "A party is however many turn up. The invite row is always last.",
     build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"],
                           ["shrimpy", 0, "", "kpj-same"], ["kelp", 0, "browsing"]]);
                   a.key("Hold to move", { hold: true }); a.pill("Party · 4");
-                  a.say("GNFS · 4/6 - you are both in."); } },
+                  a.msgHidden(); } },
+  "friend-stuck": { group: "Presence", cap: "Friend will not follow",
+    when: "They switched following off. Their dot goes red and the row says why.",
+    build: a => { a.rows([ME, ["Finum", 0, "not following", "kpj-stuck"]]); a.msgHidden();
+                  document.querySelectorAll(".kpj-stuck .kpj-dot").forEach(d => d.className = "kpj-dot dead"); } },
+  "friend-arrived": { group: "Presence", cap: "Friend just arrived",
+    when: "Their row blinks for two seconds, so an arrival is not missed mid-game.",
+    build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same kpj-blink"]]);
+                  a.key("Hold to move", { hold: true }); a.msgHidden(); } },
   "stale": { group: "Presence", cap: "Friend dropped off",
     when: "No heartbeat for 70 seconds, so the row is gone and the key reverts.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"]]); a.say("Linked - waiting for your friend"); } },
+    build: a => { a.rows([["puffa", 1, "in GNFS"]]); a.msgHidden(); } },
 
   /* ---- the party name tooltip ---------------------------------------- */
   "tooltip": { group: "Tooltip", cap: "Party name, explained", wide: true,
     when: "Hover or keyboard-focus the info icon. It hangs off the card so it covers nothing.",
-    build: a => { a.rows([ME]); a.tip(true); a.say("Linked - waiting for your friend"); } },
+    build: a => { a.rows([ME]); a.tip(true); a.msgHidden(); } },
 
   /* ---- the room size key --------------------------------------------- */
   "size-menu": { group: "Room size", cap: "Menu open", tall: true,
     when: "Click the size key, or press Down on it. Arrows, Home, End, Enter, Escape.",
-    build: a => { a.rows([ME]); a.menu(true); a.say("Linked - waiting for your friend"); } },
+    build: a => { a.rows([ME]); a.menu(true); a.msgHidden(); } },
   "size-any": { group: "Room size", cap: "Any size",
     when: "The default: every lobby with room for all of you.",
-    build: a => { a.rows([ME]); a.size("Any"); a.say("Linked - waiting for your friend"); } },
+    build: a => { a.rows([ME]); a.size("Any"); a.msgHidden(); } },
 
   /* ---- the primary key ------------------------------------------------ */
   "key-find": { group: "The key", cap: "Find room",
     when: "A tap searches the lobby list for one with a seat for each of you.",
-    build: a => { a.rows([ME]); a.say("Linked - waiting for your friend"); } },
+    build: a => { a.rows([ME]); a.msgHidden(); } },
   "key-disabled": { group: "The key", cap: "Disabled",
     when: "No party name, or paused.",
     build: a => { a.party(""); a.rows([ME]); a.dot("wait"); a.key("Find room", { disabled: true });
@@ -88,12 +102,12 @@ export const STATES = {
   "key-hold": { group: "The key", cap: "Hold to move",
     when: "You are all in one room, so a stray tap must not drag everyone out.",
     build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"]]);
-                  a.key("Hold to move", { hold: true }); a.say("GNFS · 4/6 - you are both in."); } },
+                  a.key("Hold to move", { hold: true }); a.msgHidden(); } },
   "key-holding": { group: "The key", cap: "Holding, 1.6s in",
     when: "Four seconds of pointer or Enter. Let go and it snaps back in 200ms.",
     build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"]]);
                   a.key("Hold to move", { hold: true, fill: "60%" });
-                  a.say("GNFS · 4/6 - you are both in."); } },
+                  a.msgHidden(); } },
 
   /* ---- invite ---------------------------------------------------------- */
   "invite-copied": { group: "Invite", cap: "Copied",
@@ -117,10 +131,10 @@ export const STATES = {
     build: a => { a.rows([ME]); a.say("GNFS · 4/6 - going in."); } },
   "no-lobby-size": { group: "Finding a room", cap: "None that size",
     when: "Lobbies exist, none match the size you picked.",
-    build: a => { a.rows([ME]); a.say("No 4-6 lobby with 2 free seats. Try another size or wait a few seconds."); } },
+    build: a => { a.rows([ME]); a.say("No 4-6 lobby with a free seat. Try another size or wait a few seconds."); } },
   "no-lobby": { group: "Finding a room", cap: "None at all",
     when: "Nothing in the list has room for all of you.",
-    build: a => { a.rows([ME]); a.say("No lobby with 2 free seats right now. Try again in a few seconds."); } },
+    build: a => { a.rows([ME]); a.say("No lobby with a free seat right now. Try again in a few seconds."); } },
   "rooms-failed": { group: "Finding a room", cap: "List unreachable",
     when: "The room list request failed.",
     build: a => { a.rows([ME]); a.say("Can’t read the room list. Check your connection and try again."); } },

@@ -29,7 +29,6 @@
   --navy-200: #ccd8ec;  --navy-100: #e8f1ff;
   --mint-700: #35a472;  --mint-600: #31d08e;  --mint-500: #4effb2;
   --mint-400: #a2fdcd;  --mint-300: #cdfde5;  --mint-100: #edfdf4;
-  --mint-800: #1a7d54;              /* only the hold fill: the label must stay readable on it */
   --gold-500: #ffd166;  --coral-500: #ff5d8f;
 
   /* --- semantic: every component reads these, never a primitive ---------- */
@@ -58,7 +57,6 @@
   --text-faint: var(--navy-400);
   --accent: var(--mint-500);
   --accent-deep: var(--mint-700);
-  --accent-sink: var(--mint-800);
   --accent-ink: var(--mint-100);
   --warn: var(--gold-500);
   --bad: var(--coral-500);
@@ -85,6 +83,7 @@
   --font-ui: "KPJ Pixelify", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-status: "KPJ VT323", ui-monospace, SFMono-Regular, Menlo, monospace;
   --fs-name: 1rem;                /* the party name and each player's name */
+  --fs-status: 1rem;              /* the footer line, in the pixel face */
   --fs-body: .875rem;
   --fs-label: .8125rem;
   --fs-kicker: .5938rem;
@@ -108,7 +107,7 @@
     --navy-500: oklch(.500 .066 260);  --navy-400: oklch(.660 .061 260);
     --navy-300: oklch(.780 .045 260);  --navy-200: oklch(.880 .030 260);
     --navy-100: oklch(.956 .021 260);
-    --mint-800: oklch(.520 .105 160);  --mint-700: oklch(.643 .125 160);
+    --mint-700: oklch(.643 .125 160);
     --mint-600: oklch(.763 .160 160);
     --mint-500: oklch(.892 .179 160);  --mint-400: oklch(.933 .100 160);
     --mint-300: oklch(.973 .055 160);  --mint-100: oklch(.990 .022 160);
@@ -174,6 +173,7 @@
 @keyframes kpj-row { from { opacity: 0; filter: blur(4px); transform: translateY(12px); } }
 
 #kpj-top {
+  position: relative;            /* the settings sheet hangs from it */
   display: flex; align-items: center; gap: 8px; user-select: none;
   padding: 12px var(--pad) var(--pad-head); border-bottom: var(--stroke-w) solid var(--border-subtle);
 }
@@ -189,8 +189,48 @@
   transition: color 140ms var(--ease);
 }
 #kpj button#kpj-info svg { width: 11px; height: 11px; }
+/* the name and, beside it, how the link is doing */
+#kpj-name-row { display: flex; align-items: center; gap: 8px; }
+#kpj-link {
+  flex: 0 0 auto; width: 14px; height: 14px; display: grid; place-items: center;
+  opacity: 0; transition: opacity 450ms ease-out;
+}
+#kpj-link[data-cue="connecting"], #kpj-link[data-cue="ok"] { opacity: 1; }
+#kpj #kpj-link svg { width: 14px; height: 14px; stroke: var(--accent); stroke-width: 2; }
+#kpj-link[data-cue="connecting"] svg { display: none; }
+#kpj-link[data-cue="connecting"]::before {
+  content: ""; width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid color-mix(in oklab, var(--accent) 26%, transparent);
+  border-block-start-color: var(--accent);
+  animation: kpj-spin 700ms linear infinite;    /* a loading indicator runs at a constant rate */
+}
+@keyframes kpj-spin { to { transform: rotate(360deg); } }
+
+/* --- settings: three switches, hanging off the header ------------------ */
+#kpj-settings {
+  position: absolute; z-index: 6; top: calc(100% + 4px); inset-inline-end: var(--pad);
+  width: 236px; padding: 6px; display: grid; gap: 2px;
+  border-radius: 14px; border: var(--stroke-w) solid transparent;
+  transform-origin: top right;
+  opacity: 1; transform: none;
+  transition: opacity 150ms var(--ease), transform 150ms var(--ease);
+}
+#kpj-settings[hidden] { display: none; }
+@starting-style {
+  #kpj-settings { opacity: 0; transform: scale(.97) translateY(-4px); }
+}
+#kpj-settings label {
+  display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 10px;
+  font-size: var(--fs-label); line-height: 1.3; color: var(--text-dim); cursor: pointer;
+  transition: color 120ms var(--ease), background-color 120ms var(--ease);
+}
+#kpj-settings input {
+  flex: 0 0 auto; width: 14px; height: 14px; margin: 0; cursor: pointer;
+  accent-color: var(--accent);
+}
+
 #kpj-name-input {                                  /* underline only, no box */
-  width: 100%; min-width: 0; min-height: 21px; padding: 0 0 2px;
+  flex: 1; min-width: 0; min-height: 21px; padding: 0 0 2px;
   font: 500 var(--fs-name)/1.27 var(--font-ui); color: var(--text); background: transparent;
   border: 0; border-bottom: var(--stroke-w) solid transparent; border-radius: 0;
   text-overflow: ellipsis;
@@ -206,7 +246,7 @@
 /* it hangs off the card, to the left, so it covers none of the panel */
 #kpj-tip {
   position: absolute; top: 10px; inset-inline-end: calc(100% + 10px); z-index: 4;
-  width: 216px; padding: 8px 10px; border-radius: var(--r-inner);
+  width: 216px; padding: 8px 12px 8px 14px; border-radius: var(--r-inner);
   border: var(--stroke-w) solid transparent; color: var(--text-dim);
   font-size: var(--fs-label); line-height: 1.4; text-wrap: pretty;
   transform-origin: top right;
@@ -255,6 +295,10 @@
   color: var(--text-dim); white-space: nowrap;
 }
 .kpj-who-row.kpj-same span { color: var(--accent); }
+.kpj-who-row.kpj-stuck span { color: var(--bad); }
+/* two seconds of blink, so an arrival is not missed mid-game */
+.kpj-who-row.kpj-blink { animation: kpj-blink 400ms steps(1) 5; }
+@keyframes kpj-blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 /* your own whereabouts is the one thing you already know */
 .kpj-who-row.kpj-self span { visibility: hidden; }
 
@@ -323,14 +367,19 @@
   letter-spacing: .08em; text-transform: uppercase;
   transition: filter 140ms var(--ease);
 }
-/* hold to move: the fill is the progress bar, so it runs at a constant rate */
+/* hold to move: a white panel wipes across the key, carrying its own copy of
+   the label in dark ink, so the words stay readable on both sides of the edge */
+#kpj button#kpj-go { display: grid; place-items: center; }
 #kpj-go .kpj-fill {
   position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
-  background: linear-gradient(180deg,
-    var(--accent-sink),
-    color-mix(in oklab, var(--accent-sink) 84%, black));
+  display: grid; place-items: center;          /* the same box, so the copy lands exactly on top */
+  background: rgb(255 255 255 / .9);
   clip-path: inset(0 100% 0 0);
   transition: clip-path 200ms ease-out;        /* the snap back when you let go */
+}
+#kpj-go .kpj-fill span {
+  color: var(--navy-950);
+  letter-spacing: inherit; text-transform: inherit; font: inherit;
 }
 #kpj-go.kpj-holding .kpj-fill {
   clip-path: inset(0 0 0 0);
@@ -341,8 +390,8 @@
 
 /* --- toast ------------------------------------------------------------- */
 #kpj-toast {
-  position: fixed; inset-inline-end: 14px; bottom: 14px; z-index: 2147483001;
-  pointer-events: none; max-width: 272px;
+  position: static; margin-top: 8px; width: 100%;      /* under the widget, in your eyeline */
+  pointer-events: none;
   padding: 9px 12px; border-radius: var(--r-inner);
   background: var(--bg); border: 1px solid var(--edge); color: var(--text);
   font: var(--fs-label)/1.45 var(--font-ui);
@@ -369,6 +418,7 @@
   #kpj-size-menu li:not([aria-selected="true"]):hover {
     color: var(--text); background: color-mix(in oklab, var(--accent) 14%, transparent);
   }
+  #kpj-settings label:hover { color: var(--text); background: color-mix(in oklab, var(--edge) 40%, transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -441,7 +491,7 @@
 .kpj-dot.wait { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .5), var(--warn) 62%); }
 .kpj-dot.dead { background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / .45), var(--bad) 62%); }
 
-#kpj-tip, #kpj-toast, #kpj-size-menu {
+#kpj-tip, #kpj-toast, #kpj-size-menu, #kpj-settings {
   background:
     linear-gradient(180deg, var(--surface-raised), var(--surface)) padding-box,
     var(--stroke) border-box;
@@ -463,7 +513,7 @@
 #kpj button#kpj-msg {
   display: block; width: 100%; text-align: center; cursor: pointer;
   padding: 0 var(--pad) 10px;
-  font: var(--fs-body)/1.3 var(--font-status); letter-spacing: .034em;
+  font: var(--fs-status)/1.25 var(--font-status); letter-spacing: .034em;
   color: var(--text-faint); text-wrap: pretty; overflow-wrap: anywhere;
   transition: color 140ms var(--ease);
 }

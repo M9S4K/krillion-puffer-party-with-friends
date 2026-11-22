@@ -22,6 +22,9 @@
   let peers = new Map();            // id -> { name, room, at }
   let seenRows = new Set();         // rows already on screen, so only new ones animate
   let lastSig = "";                 // what we last told the party
+  let blinkUntil = new Map();       // peer id -> when their arrival blink ends
+  let linkCue = "off";              // off | connecting | ok - the glyph by the name
+  let linkCueT = null;
   let lastSentAt = 0;
   let el = {};
 
@@ -97,6 +100,7 @@
     { v: "12",  label: "10+",   fits: m => m >= 11 }
   ];
   const sizeOf = v => SIZES.find(x => x.v === v) || SIZES[0];
+  const seats = n => n === 1 ? "a free seat" : `${n} free seats`;
   const HOLD_MS = 4000;             // moving a party that is already together
 
   /* ---------- panel ---------- */
@@ -111,10 +115,19 @@
         <div id="kpj-top">
           <div id="kpj-id">
             <div id="kpj-kicker-row"><span id="kpj-kicker">Party name</span><button id="kpj-info" aria-label="About the party name" aria-describedby="kpj-tip"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6" stroke-linecap="round"/><path d="M8 4.8v.5" stroke-linecap="round"/></svg></button><span id="kpj-tip" role="tooltip">Type out any name and ask your friends to type it in exactly to join the same party</span></div>
-            <input id="kpj-name-input" type="text" spellcheck="false" autocomplete="off"
-                   aria-label="Party name" placeholder="name your party">
+            <div id="kpj-name-row">
+              <input id="kpj-name-input" type="text" spellcheck="false" autocomplete="off"
+                     aria-label="Party name" placeholder="name your party">
+              <i id="kpj-link" data-cue="off" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.4 6.6 11.5 12.5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>
+            </div>
           </div>
+          <button id="kpj-set" title="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h6.2M13 5.5h.5M2.5 10.5h2.7M9.5 10.5h4" stroke-linecap="round"/><circle cx="10.8" cy="5.5" r="1.7"/><circle cx="7.3" cy="10.5" r="1.7"/></svg></button>
           <button id="kpj-close" title="Hide" aria-label="Hide panel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button>
+          <div id="kpj-settings" role="dialog" aria-label="Settings" hidden>
+            <label><input type="checkbox" id="kpj-enabled"><span>Keep my party linked</span></label>
+            <label><input type="checkbox" id="kpj-follow"><span>Follow my party into rooms</span></label>
+            <label><input type="checkbox" id="kpj-autoSeat"><span>Take my seat automatically</span></label>
+          </div>
         </div>
         <div id="kpj-who"></div>
         <div id="kpj-acts">
@@ -128,7 +141,7 @@
               ${SIZES.map(o => `<li role="option" id="kpj-size-${o.v}" data-v="${o.v}" aria-selected="false">${o.label}</li>`).join("")}
             </ul>
           </div>
-          <button id="kpj-go" type="button"><i class="kpj-fill" aria-hidden="true"></i><span id="kpj-go-txt">Find room</span></button>
+          <button id="kpj-go" type="button"><span id="kpj-go-txt">Find room</span><i class="kpj-fill" aria-hidden="true"><span>Find room</span></i></button>
           </div>
         </div>
         <button id="kpj-msg" type="button" role="status" aria-live="polite" title="Click to copy the diagnostic log"></button>
@@ -147,8 +160,12 @@
       sizeTxt: root.querySelector("#kpj-size-txt"),
       sizeMenu: root.querySelector("#kpj-size-menu"),
       goTxt: root.querySelector("#kpj-go-txt"),
+      goMirror: root.querySelector("#kpj-go .kpj-fill span"),
       msg: root.querySelector("#kpj-msg"),
-      party: root.querySelector("#kpj-name-input")
+      party: root.querySelector("#kpj-name-input"),
+      link: root.querySelector("#kpj-link"),
+      set: root.querySelector("#kpj-set"),
+      settings: root.querySelector("#kpj-settings")
     };
 
     el.pill.onclick = () => setOpen(true);
@@ -160,6 +177,25 @@
     document.addEventListener("keydown", e => {
       if (e.altKey && (e.key === "l" || e.key === "L")) { e.preventDefault(); copyLog(); }
     });
+
+    /* --- settings: three switches, no separate page --- */
+    const setOpenSettings = open => {
+      el.settings.hidden = !open;
+      el.set.setAttribute("aria-expanded", String(open));
+      if (open) el.settings.querySelector("input").focus();
+    };
+    el.set.onclick = () => setOpenSettings(el.settings.hidden);
+    el.settings.onchange = ev => {
+      const box = ev.target.closest("input[type=checkbox]");
+      if (box) chrome.storage.sync.set({ [box.id.replace("kpj-", "")]: box.checked });
+    };
+    el.settings.onkeydown = ev => {
+      if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); setOpenSettings(false); el.set.focus(); }
+    };
+    document.addEventListener("pointerdown", ev => {
+      const t = ev.target instanceof Element ? ev.target : null;
+      if (!el.settings.hidden && !t?.closest("#kpj-settings") && !t?.closest("#kpj-set")) setOpenSettings(false);
+    }, true);
 
     /* --- room size: a listbox, so it can wear the panel's own clothes --- */
     const sizeOpen = open => {
@@ -278,13 +314,33 @@
       t.setAttribute("role", "status");
       t.setAttribute("aria-live", "polite");
       t.onclick = () => t.classList.remove("show", "sticky");
-      document.documentElement.appendChild(t);
+      (el.root || document.documentElement).appendChild(t);   // under the widget, where you are looking
     }
     t.textContent = ms ? text : text + "  (click to dismiss)";
     t.classList.toggle("sticky", !ms);
     t.classList.add("show");
     clearTimeout(t._h);
     if (ms) t._h = setTimeout(() => t.classList.remove("show", "sticky"), ms);
+  }
+
+  // a friend turning up while you are mid-game is easy to miss, so their row blinks
+  function blink(id) {
+    blinkUntil.set(id, now() + 2000);
+    setTimeout(() => { blinkUntil.delete(id); render(); }, 2050);
+  }
+
+  // by the party name: a spinner while the socket opens, then a check that fades
+  function setLinkCue(next) {
+    if (next === linkCue) return;
+    if (linkCue === "connecting" && next === "ok") {
+      linkCue = "ok"; el.link.dataset.cue = "ok";
+      clearTimeout(linkCueT);
+      linkCueT = setTimeout(() => { linkCue = "off"; el.link.dataset.cue = "off"; }, 1600);
+      return;
+    }
+    if (next === "ok") next = "off";          // nothing to confirm if it was never connecting
+    clearTimeout(linkCueT);
+    linkCue = next; el.link.dataset.cue = next;
   }
 
   function paintSize() {
@@ -299,6 +355,7 @@
     if (!el.root) return;
     const state = !cfg.enabled ? "dead" : !cfg.party ? "wait" : wsState === "on" ? "live" : "wait";
     el.dots.forEach(d => { d.className = "kpj-dot " + state; });
+    setLinkCue(!cfg.party || !cfg.enabled ? "off" : wsState === "on" ? "ok" : "connecting");
 
     const mates = livePeers();
     const mine = roomCode();
@@ -307,18 +364,22 @@
       : mates.length ? `Party · ${mates.length + 1}` : "Party · alone";
     if (document.activeElement !== el.party && el.party.value !== (cfg.party || "")) el.party.value = cfg.party || "";
 
-    const fresh = id => (seenRows.has(id) ? "" : " kpj-in");
+    const blinking = id => blinkUntil.get(id) > now();
+    const fresh = id => (seenRows.has(id) || blinking(id) ? "" : " kpj-in");
     const ids = new Set(["me", "invite"]);
-    const rows = [`<div class="kpj-who-row kpj-self${fresh("me")}"><i class="kpj-dot live"></i><b>${esc(myName() || "you")}</b>
+    const rows = [`<div class="kpj-who-row kpj-self${fresh("me")}"><i class="kpj-dot ${state}"></i><b>${esc(myName() || "you")}</b>
         <em class="kpj-me">(you)</em><span>${mine ? "in " + mine : "browsing"}</span></div>`];
     for (const [id, p] of [...peers].filter(([, p]) => now() - p.at < PEER_STALE_MS)) {
       ids.add(id);
       const together = mine && p.room === mine;
-      const status = together ? ""                 // you can see you are together; the key says so too
+      const stuck = p.follows === false;           // they have following switched off
+      const status = stuck ? "not following"       // the red dot is never the only cue
+        : together ? ""                            // you can see you are together; the key says so too
         : p.room ? (mine ? "too late" : "playing")
         : "browsing";
-      rows.push(`<div class="kpj-who-row${together ? " kpj-same" : ""}${fresh(id)}">
-        <i class="kpj-dot live"></i><b>${esc(p.name || "friend")}</b>
+      rows.push(`<div class="kpj-who-row${together ? " kpj-same" : ""}${stuck ? " kpj-stuck" : ""}${
+        blinking(id) ? " kpj-blink" : ""}${fresh(id)}">
+        <i class="kpj-dot ${stuck ? "dead" : "live"}"></i><b>${esc(p.name || "friend")}</b>
         <span>${status}</span></div>`);
     }
     // always offer the next seat: a party is however many of you turn up
@@ -335,14 +396,13 @@
     // all of you in one room already? moving means dragging everyone out, so make it deliberate
     const together = !!mine && mates.length > 0 && mates.every(p => p.room === mine);
     el.go.dataset.hold = together ? "1" : "";
-    el.goTxt.textContent = together ? "Hold to move" : "Find room";
+    el.goTxt.textContent = el.goMirror.textContent = together ? "Hold to move" : "Find room";
     el.go.disabled = !cfg.enabled || !cfg.party;
 
-    // the link state is spelled out, never carried by the dot's colour alone
+    // only when there is something to do about it: the rest is on the dots and the cue
     if (!cfg.party) say("Name your party above, same on both machines.");
     else if (!cfg.enabled) say("Paused - nothing is sent or followed.");
-    else if (wsState !== "on") say("Connecting…");
-    else if (!stickyMsg) say(mates.length ? `Linked · ${cfg.party}` : `Linked - waiting for your friend`);
+    else if (!stickyMsg) say("");
   }
 
   async function invite() {
@@ -421,7 +481,8 @@
 
       if (m.t === "hi") {
         const first = !peers.has(m.from);
-        peers.set(m.from, { name: m.name, room: m.code || null, at: now() });
+        peers.set(m.from, { name: m.name, room: m.code || null, follows: m.f !== 0, at: now() });
+        if (first) blink(m.from);
         render();
         // say hello back once, so whoever just arrived can see us
         if (first) log("peer seen", { name: m.name, room: m.code || null });
@@ -429,7 +490,8 @@
         return;
       }
       if (m.t === "join" && typeof m.code === "string") {
-        peers.set(m.from, { name: m.name, room: m.code.toUpperCase(), at: now() });
+        if (!peers.has(m.from)) blink(m.from);
+        peers.set(m.from, { name: m.name, room: m.code.toUpperCase(), follows: m.f !== 0, at: now() });
         render();
         onCall(m.code.toUpperCase(), m.name);
       }
@@ -458,10 +520,10 @@
 
   function heartbeat(force = false) {
     if (!cfg.enabled || !cfg.party || wsState !== "on") return;
-    const sig = `${myName()}|${roomCode() || ""}`;
+    const sig = `${myName()}|${roomCode() || ""}|${cfg.follow ? 1 : 0}`;
     if (!force && sig === lastSig && now() - lastSentAt < HEARTBEAT_MS) return;
     lastSig = sig;
-    publish({ t: "hi", from: clientId, name: myName(), code: roomCode(), ts: now() });
+    publish({ t: "hi", from: clientId, name: myName(), code: roomCode(), f: cfg.follow ? 1 : 0, ts: now() });
   }
 
   // one quiet check on boot, so a broken link is visible before it matters
@@ -481,7 +543,7 @@
     if (!manual && echoed(code)) return;
     lastBroadcast = { code, at: now() };
     try { sessionStorage.setItem("kpj-sent", `${code}|${lastBroadcast.at}`); } catch {}
-    publish({ t: "join", code, from: clientId, name: myName(), ts: now() }).then(r => {
+    publish({ t: "join", code, from: clientId, name: myName(), f: cfg.follow ? 1 : 0, ts: now() }).then(r => {
       if (r && r.ok) say(livePeers().length ? `Sent ${code} to your party.` : `Sent ${code} - nobody is listening yet.`, 6000);
       else if (r && r.offline) say("Relay is still connecting - that room will go out in a moment.", 6000);
       else say("Could not send to the relay. The log (Alt+L) has the detail.", 9000);
@@ -547,7 +609,7 @@
     el.go.disabled = false;
     log("rooms", { ok: !!r.ok, count: r.rooms?.length ?? 0 });
     if (!r.ok || !r.rooms?.length) return say("Can\u2019t read the room list. Check your connection and try again.", 8000);
-    const need = Math.max(2, size);
+    const need = size;                      // one of you needs one seat, not two
     const want = cfg.size || "any";
     const fits = x => sizeOf(want).fits(x.maxPlayers);
     const open = r.rooms.filter(x => x.phase === "lobby" && (x.maxPlayers - x.players) >= need);
@@ -556,8 +618,8 @@
     if (!pick) {
       const label = sizeOf(want).label.toLowerCase();
       return say(open.length
-        ? `No ${label} lobby with ${need} free seats. Try another size or wait a few seconds.`
-        : `No lobby with ${need} free seats right now. Try again in a few seconds.`, 8000);
+        ? `No ${label} lobby with ${seats(need)}. Try another size or wait a few seconds.`
+        : `No lobby with ${seats(need)} right now. Try again in a few seconds.`, 8000);
     }
     say(`${pick.code} · ${pick.players}/${pick.maxPlayers} - going in.`);
     broadcast(pick.code, true);
@@ -612,6 +674,10 @@
       build();
       el.party.value = cfg.party || "";
       paintSize();
+      for (const k of ["enabled", "follow", "autoSeat"]) {
+        const n = el.root.querySelector("#kpj-" + k);
+        if (n) n.checked = !!cfg[k];
+      }
       if (cfg.open || !cfg.party) el.root.classList.add("open");
       render();
       watchClicks();
@@ -629,6 +695,7 @@
     for (const [k, v] of Object.entries(changes)) {
       cfg[k] = v.newValue;
       if (k === "party" || k === "enabled") relink = true;
+      if (k === "follow") setTimeout(() => heartbeat(true), 0);
       const node = el.root?.querySelector("#kpj-" + k);
       if (node && node.type === "checkbox" && node.checked !== !!v.newValue) node.checked = !!v.newValue;
       if (k === "party" && el.party && document.activeElement !== el.party) el.party.value = v.newValue || "";
