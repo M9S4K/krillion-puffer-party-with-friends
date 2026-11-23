@@ -1,76 +1,97 @@
 # Posting it on X
 
-Lead with the problem, not the tool. The bug is the hook: everyone who has
-tried to play an online game with a friend recognises it instantly.
+Lead with the problem. The extension is the punchline, not the pitch — by the
+time you mention it, people should already be nodding along.
+
+Attach `docs/video/krillion-party-joiner-15s.mp4` to the first post.
 
 ---
 
 ## The post
 
-> Puffer Party matchmaking puts you in the fullest lobby it can find.
+> me and my mate have this routine where we both open Krillion, hit Quick Play
+> at the same second, and end up in two different rooms.
 >
-> Which is great for the game, and useless for friends, because the fullest
-> lobby has exactly one seat left.
+> took me embarrassingly long to work out why.
 >
-> So you press Quick Play together. And get split up. Every single time.
+> matchmaking drops you in the fullest lobby it can find. and the fullest
+> lobby, by definition, has one seat left.
 >
-> I got annoyed enough to fix it 🦐
+> so it works perfectly. it just hates friends.
+>
+> anyway. built a thing 🦐
 
-*Attach: `docs/store/screenshot-2-together.png`*
+*Attach the video.*
 
 ---
 
-## The replies, if it gets traction
+## First reply
 
-**2/**
-> You both type the same party name. That's the whole setup — no account, no
-> login, nothing to register.
+> you both type the same party name once. that's it, that's the setup — no
+> account, no login, nothing to sign up for.
 >
-> After that one of you joins a room and everyone else gets pulled in behind
-> you. Their browser opens the room and takes their seat for them.
-
-*Attach: `docs/store/screenshot-1-on-the-page.png`*
-
-**3/**
-> Or press Find room and it reads the live room list, finds a lobby with enough
-> free seats for everyone, and takes you all there at once.
-
-*Attach: `docs/store/screenshot-3-sizes.png`*
-
-**4/**
-> Once you're all in, the button becomes "hold to move" for 4 seconds.
+> after that whoever joins a room drags everyone else in behind them. their
+> browser opens the room and takes their seat for them.
 >
-> Because after you've finally got seats together, one stray click should not
-> drag everybody back out.
-
-**5/**
-> No server. The browsers talk to each other over a public MQTT broker and the
-> only thing that travels is a 4-letter room code.
->
-> Open source, MIT:
+> free, open source, works in any chrome browser:
 > github.com/M9S4K/krillion-puffer-party-with-friends
 
 ---
 
-## If you want a shorter single post instead
+## If people ask how it works
 
-> Puffer Party always split me and my mate up, because matchmaking picks the
-> fullest lobby and the fullest lobby has one seat left.
+> no server. the browsers talk to each other over a public MQTT broker and the
+> only thing that ever travels is a 4-letter room code.
 >
-> So: a Chrome extension. You both type the same party name, then whoever joins
-> a room drags the rest of the party in with them.
+> the party name is the channel they talk on, which is why it tells you to pick
+> a weird one.
+
+> the button turns into "hold to move" once you're all in the same room. four
+> seconds. because after you've finally got seats together, one stray click
+> should not drag everyone back out.
+
+---
+
+## A shorter version, if you don't want to thread
+
+> krillion matchmaking puts you in the fullest lobby it can find, which always
+> has exactly one seat left, which means me and my mate never once landed in
+> the same game.
 >
-> MIT, no account, no server 🦐
+> so: type the same party name, and whoever joins a room pulls the rest of the
+> party in with them.
+>
+> free, no account 🦐
 > github.com/M9S4K/krillion-puffer-party-with-friends
 
 ---
 
 ## Worth knowing
 
-- **Post the screenshot, not the repo link, as the first thing.** X suppresses
-  posts with links in them. Put the link in reply 5, or in the first reply.
-- **The best time to post** this kind of thing is a weekday morning US Eastern.
-- **Tag nobody.** If Krillion's account finds it themselves, that lands much
-  better than being summoned.
-- **The hook is the one-seat detail.** Lead with the problem every time; the
-  extension is the punchline, not the pitch.
+- **Put the video in the first post and the link in the reply.** X buries posts
+  that contain links.
+- **Lower case and no formatting reads as a person.** Bullet points and bold
+  headings read as marketing, and get scrolled past.
+- **Don't tag Krillion.** If they find it themselves it lands far better than
+  being summoned.
+- **The hook is the one-seat detail.** It is the bit that makes people go "oh,
+  that's why" — everything else is downstream of it.
+- A weekday morning US Eastern is the usual best window.
+
+---
+
+## The video
+
+15 seconds, 1280x720, built from code rather than recorded:
+
+- `tools/video-scenes.html` renders each scene from the extension's own
+  stylesheet, so the type and the panel are the real thing
+- `tools/make-video.py` composes them with ffmpeg — a slow push in or out on
+  every scene, cross-fades between, one near-hard cut on "One seat." for the
+  beat, and the pointer interpolated out of the plain backgrounds
+
+Re-render it with:
+
+```bash
+python3 tools/make-video.py
+```
