@@ -82,13 +82,19 @@ Attach `docs/video/krillion-party-joiner-15s.mp4` to the first post.
 
 ## The video
 
-15 seconds, 1280x720, built from code rather than recorded:
+15 seconds, 1920x1080, animated rather than recorded:
 
-- `tools/video-scenes.html` renders each scene from the extension's own
-  stylesheet, so the type and the panel are the real thing
-- `tools/make-video.py` composes them with ffmpeg — a slow push in or out on
-  every scene, cross-fades between, one near-hard cut on "One seat." for the
-  beat, and the pointer interpolated out of the plain backgrounds
+- `tools/video-scenes.html` renders every text card and UI piece from the
+  extension's own stylesheet, at exactly half of 1080p so they pixel-double
+  cleanly and the type stays sharp
+- the two krill are Krillion's own sprites
+- `tools/make-video.py` animates it in ffmpeg: every position is an expression
+  in `t`, with eased moves, a bob on each krill, and the room row dropping in
+  with some overshoot
+
+The beats: you both hit Quick Play, it drops you in the fullest lobby, the row
+lands with one free seat, the red krill darts into it, the gold one bounces off
+and drifts away, then the panel slides up and they end up side by side.
 
 Re-render it with:
 

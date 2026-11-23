@@ -1,96 +1,103 @@
-<!doctype html><meta charset="utf-8"><title>video scene</title>
+<!doctype html><meta charset="utf-8"><title>video layers</title>
 <link rel="stylesheet" href="../extension/content.css">
 <style>
-  /* Composed at 1280x720, shown at 0.7266 so a whole 16:9 scene fits the
-     capture viewport. Crop #out, scale to 1280x720, hand to ffmpeg. */
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #050b14; }
+  /* Layers for the clip, laid out at exactly half of 1920x1080 so ffmpeg can
+     pixel-double them with flags=neighbor and keep the type crisp.
+     Text strips are white on black and get screen-blended, so they need no
+     alpha channel. Everything else is captured on the video's own background. */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #111; }
   body { display: grid; place-items: center; }
-  #out { width: 930px; height: 523px; overflow: hidden; }
-  .scene {
-    transform: scale(.7266); transform-origin: top left;
-    position: relative; width: 1280px; height: 720px;
-    background: radial-gradient(880px 560px at 50% -14%, #16324f, #050b14 72%);
-    display: grid; place-items: center;
-  }
-  .scene.shot { background: #050b14; padding: 0; }
-  .scene.shot img { width: 1280px; height: 720px; object-fit: cover; object-position: top center; }
+  #out { overflow: hidden; background: #000; }
 
-  h1, h2, p, .url { margin: 0; font-variant-ligatures: none; text-align: center; }
-  h1 {
-    color: #e8f1ff; font: 400 64px/1.18 "KPJ Pixelify", monospace;
-    font-variant-ligatures: none; max-width: 980px;
+  .strip { display: grid; }
+  .card {
+    width: 960px; height: 180px; display: grid; place-items: center;
+    background: #000; text-align: center; font-variant-ligatures: none;
   }
-  h2 {
-    color: #e8f1ff; font: 400 44px/1.25 "KPJ Pixelify", monospace;
-    font-variant-ligatures: none; max-width: 980px;
+  .card .big {
+    color: #fff; font: 400 46px/1.2 "KPJ Pixelify", monospace;
+    font-variant-ligatures: none;
   }
-  p {
-    margin-top: 22px; color: #7d93b8; letter-spacing: .03em;
-    font: 400 26px/1.45 "KPJ VT323", monospace; font-variant-ligatures: none;
+  .card .huge {
+    color: #fff; font: 400 72px/1.1 "KPJ Pixelify", monospace;
+    font-variant-ligatures: none;
   }
-  .accent { color: #4effb2; }
-  .dim { color: #4d6489; }
+  .card .sub {
+    display: block; margin-top: 14px; color: #8a8a8a;
+    font: 400 24px/1.3 "KPJ VT323", monospace; font-variant-ligatures: none;
+  }
+  .card .hi { color: #b9ffe0; }
 
-  /* a fake Krillion room row, so the one-seat problem is visible */
-  .rooms { display: grid; gap: 12px; }
+  /* pieces captured in colour, on the clip's own background */
+  .piece { width: 960px; height: 220px; display: grid; place-items: center;
+           background: #070f1c; }
   .room {
-    display: grid; grid-template-columns: 112px 1fr auto; align-items: center;
-    gap: 22px; width: 620px; padding: 16px 22px; border-radius: 16px;
+    display: grid; grid-template-columns: 96px 1fr auto; align-items: center;
+    gap: 20px; width: 560px; padding: 16px 22px; border-radius: 16px;
     background: #0e1b2e; border: 1.5px solid #1b2c47;
     font: 400 26px/1 "KPJ Pixelify", monospace; font-variant-ligatures: none;
     color: #a7b8d5;
   }
   .room b { color: #e8f1ff; font-weight: 400; letter-spacing: .06em; }
-  .room .seats { color: #7d93b8; font: 400 22px/1 "KPJ VT323", monospace; }
-  .room.hot { border-color: #2f5f49; box-shadow: 0 0 0 3px rgba(78,255,178,.1); }
+  .room .seats { font: 400 22px/1 "KPJ VT323", monospace; color: #7d93b8; }
+  .room.hot { border-color: #2f5f49; box-shadow: 0 0 0 3px rgba(78,255,178,.12); }
   .room.hot .seats { color: #4effb2; }
 
-  .pair { display: flex; gap: 120px; align-items: center; }
-  .tag {
-    width: 230px; padding: 26px 0; border-radius: 20px; text-align: center;
-    background: #0e1b2e; border: 1.5px solid #1b2c47; color: #e8f1ff;
-    font: 400 40px/1 "KPJ Pixelify", monospace; font-variant-ligatures: none;
-  }
-  .tag span { display: block; margin-top: 12px; color: #7d93b8;
-              font: 400 20px/1 "KPJ VT323", monospace; }
-
-  .art { position: relative; width: 620px; height: 440px;
-         filter: drop-shadow(0 26px 48px rgba(0,0,0,.62)); }
-  .art iframe { position: absolute; inset: 0 auto auto 0; width: 330px; height: 234px;
+  .panelbox { width: 960px; height: 340px; display: grid; place-items: center;
+              background: #070f1c; }
+  .art { position: relative; width: 460px; height: 320px; }
+  .art iframe { position: absolute; inset: 0 auto auto 0; width: 330px; height: 230px;
                 border: 0; background: transparent;
-                transform: scale(1.88); transform-origin: top left; }
+                transform: scale(1.393); transform-origin: top left; }
 
-  .end { display: grid; place-items: center; gap: 26px; }
-  .end img { width: 128px; height: 128px; border-radius: 28px; }
-  .url { color: #7d93b8; font: 400 26px/1 "KPJ VT323", monospace; letter-spacing: .04em; }
-  .stack { display: grid; place-items: center; }
+  .end { width: 960px; height: 540px; display: grid; place-items: center;
+         background: radial-gradient(640px 420px at 50% 16%, #16324f, #050b14 72%); }
+  .end .inner { display: grid; place-items: center; gap: 20px; text-align: center; }
+  .end img { width: 112px; height: 112px; border-radius: 24px; }
+  .end h2 { margin: 0; color: #e8f1ff; font: 400 40px/1.2 "KPJ Pixelify", monospace;
+            font-variant-ligatures: none; }
+  .end .url { color: #7d93b8; font: 400 23px/1 "KPJ VT323", monospace;
+              letter-spacing: .04em; font-variant-ligatures: none; }
 </style>
 <div id="out"></div>
 <script>
-const SCENES = {
-  1: `<div class="stack"><h1>You press Quick&nbsp;Play<br>together.</h1></div>`,
-  2: `<div class="stack"><h2>It puts you in the fullest lobby<br>it can find.</h2>
-      <div class="rooms" style="margin-top:46px">
-        <div class="room"><b>YKCF</b><span>Who</span><span class="seats">1 / 2</span></div>
-        <div class="room hot"><b>YJKT</b><span>krillmaster</span><span class="seats">3 / 4 &middot; one seat</span></div>
-        <div class="room"><b>MPDD</b><span>migs</span><span class="seats">4 / 10</span></div>
-      </div></div>`,
-  3: `<div class="stack"><h1>One seat.</h1><p>So one of you gets in, and the other does not.</p></div>`,
-  4: `<div class="stack"><div class="pair">
-        <div class="tag">YJKT<span>you</span></div>
-        <div class="tag">MPDD<span>your mate</span></div>
-      </div><p style="margin-top:52px">Every single time.</p></div>`,
-  5: `<div class="stack"><h1>So I fixed it.</h1><p>Both of you type the same party name. That is the setup.</p></div>`,
-  6: `<div class="art"><iframe src="panel-frame.html?bare=1&v=20&s=together"></iframe></div>`,
-  7: `<div class="stack"><h2>One of you joins a room.<br><span class="accent">Everyone else is pulled in.</span></h2>
-      <p>No clicking. No codes read out loud.</p></div>`,
-  8: `<div class="end"><img src="../extension/icons/icon200.png" alt="">
-      <h2>Krillion Puffer Party<br>With Friends</h2>
-      <div class="url">github.com/M9S4K/krillion-puffer-party-with-friends</div></div>`
+const card = (h, sub, cls = "big") =>
+  `<div class="card"><div><span class="${cls}">${h}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</div></div>`;
+
+const STRIPS = {
+  // 4 text cards, 960x180 each -> one 960x720 capture, sliced in python
+  a: `<div class="strip">
+        ${card("you both hit Quick&nbsp;Play")}
+        ${card("it drops you in the fullest lobby")}
+        ${card("one seat.", "", "huge")}
+        ${card("so you get split up", "every single time")}
+      </div>`,
+  b: `<div class="strip">
+        ${card("so I fixed it")}
+        ${card("type the same party name")}
+        ${card('one of you joins a room', "everyone else is pulled in")}
+        ${card("no clicking", "no codes read out loud")}
+      </div>`,
+  // colour pieces, 960x270 each
+  c: `<div class="strip">
+        <div class="piece"><div class="room hot"><b>YJKT</b><span>krillmaster</span>
+          <span class="seats">3 / 4 &middot; one seat</span></div></div>
+        <div class="panelbox"><div class="art">
+          <iframe src="panel-frame.html?bare=1&v=31&s=linked-alone"></iframe></div></div>
+      </div>`,
+  e: `<div class="panelbox"><div class="art">
+        <iframe src="panel-frame.html?bare=1&v=31&s=together"></iframe></div></div>`,
+  d: `<div class="end"><div class="inner">
+        <img src="../extension/icons/icon200.png" alt="">
+        <h2>Krillion Puffer Party<br>With Friends</h2>
+        <div class="url">github.com/M9S4K/krillion-puffer-party-with-friends</div>
+      </div></div>`
 };
-const n = new URLSearchParams(location.search).get("s") || "1";
-const d = document.createElement("div");
-d.className = "scene";
-d.innerHTML = SCENES[n] || SCENES[1];
-document.querySelector("#out").append(d);
+
+const k = new URLSearchParams(location.search).get("s") || "a";
+const out = document.querySelector("#out");
+out.innerHTML = STRIPS[k] || STRIPS.a;
+const el = out.firstElementChild;
+out.style.width = "960px";
+out.style.height = ({ d: 540, c: 560, e: 340 }[k] || 720) + "px";
 </script>
