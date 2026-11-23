@@ -125,9 +125,9 @@
           <button id="kpj-close" title="Hide" aria-label="Hide panel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke-linecap="round"/></svg></button>
           <div id="kpj-settings" role="dialog" aria-label="Settings" hidden>
             <label><input type="checkbox" id="kpj-enabled"><span>Keep my party connected</span></label>
-            <label><input type="checkbox" id="kpj-follow"><span>Follow my party into rooms</span></label>
-            <label><input type="checkbox" id="kpj-autoSeat"><span>Take my seat automatically</span></label>
-            <label><input type="checkbox" id="kpj-sound"><span>Play a sound</span></label>
+            <label><input type="checkbox" id="kpj-follow"><span>Follow my party into games</span></label>
+            <label><input type="checkbox" id="kpj-autoSeat"><span>Take seat automatically</span></label>
+            <label><input type="checkbox" id="kpj-sound"><span>Play a sound when game starts</span></label>
           </div>
         </div>
         <div id="kpj-who"></div>

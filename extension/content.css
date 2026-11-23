@@ -208,7 +208,7 @@
 /* --- settings: three switches, hanging off the header ------------------ */
 #kpj-settings {
   position: absolute; z-index: 6; top: calc(100% + 4px); inset-inline-end: var(--pad);
-  width: 236px; padding: 6px; display: grid; gap: 2px;
+  width: 264px; padding: 6px; display: grid; gap: 2px;   /* wide enough for one line each */
   border-radius: 14px; border: var(--stroke-w) solid transparent;
   transform-origin: top right;
   opacity: 1; transform: none;
