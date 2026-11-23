@@ -1,0 +1,73 @@
+<!doctype html><meta charset="utf-8"><title>store shot</title>
+<link rel="stylesheet" href="../extension/content.css">
+<style>
+  /* Composed at 1280x800 and shown at 0.727 so a whole 16:10 shot fits the
+     capture viewport. Centre-crop the capture to 930x581, scale to 1280x800. */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #061120; }
+  body { display: grid; place-items: center; }
+  #out { width: 930px; height: 581px; overflow: hidden; }
+  .shot {
+    transform: scale(.7266); transform-origin: top left;
+    position: relative; width: 1280px; height: 800px;
+    background: radial-gradient(900px 620px at 50% -12%, #15304f, #061120 72%);
+  }
+  .shot.full { background: #061120; }
+  .shot.full img { display: block; width: 1280px; height: 800px; object-fit: cover; object-position: top center; }
+
+  .cap, .sub, .badge { position: absolute; left: 0; right: 0; text-align: center; }
+  /* font-variant-ligatures must come after the shorthand, which resets it */
+  .cap {
+    top: 62px; color: #e8f1ff;
+    font: 400 42px/1.25 "KPJ Pixelify", ui-monospace, Menlo, monospace;
+    font-variant-ligatures: none;
+  }
+  .sub {
+    top: 126px; color: #7d93b8; letter-spacing: .03em;
+    font: 400 22px/1.4 "KPJ VT323", ui-monospace, Menlo, monospace;
+    font-variant-ligatures: none;
+  }
+  .badge {
+    bottom: 48px; color: #43597c; letter-spacing: .07em;
+    font: 400 19px/1 "KPJ VT323", ui-monospace, Menlo, monospace;
+    font-variant-ligatures: none;
+  }
+
+  /* the panel renders live in a frame and is scaled up, so it stays sharp */
+  .art {
+    position: absolute; left: 50%; top: 196px; width: 620px; height: 440px;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 26px 48px rgba(0, 0, 0, .62));
+  }
+  /* the open menu is tall, so this one scales less and shows all of it */
+  .art.tall { top: 182px; width: 446px; height: 600px; }
+  .art iframe {
+    position: absolute; inset: 0 auto auto 0;
+    width: 330px; height: 234px; border: 0; background: transparent;
+    transform: scale(1.88); transform-origin: top left;
+  }
+  .art.tall iframe { height: 444px; transform: scale(1.35); }
+</style>
+<div id="out"></div>
+<script>
+const SHOTS = {
+  1: { full: "../docs/img/hero.jpg" },
+  2: { state: "together", cap: "Land in the same room",
+       sub: "One of you joins. Everyone else is pulled in, with no clicking." },
+  3: { state: "size-menu", tall: true, cap: "Or find one for all of you",
+       sub: "Reads the live room list and picks a lobby with enough free seats." },
+  4: { state: "settings", cap: "Four switches, no account",
+       sub: "Type the same party name on both machines. That is the whole setup." }
+};
+const s = SHOTS[new URLSearchParams(location.search).get("n")] || SHOTS[1];
+const d = document.createElement("div");
+d.className = "shot" + (s.full ? " full" : "");
+d.innerHTML = s.full
+  ? `<img src="${s.full}" alt="">`
+  : `<div class="cap">${s.cap}</div>
+     <div class="sub">${s.sub}</div>
+     <div class="art${s.tall ? " tall" : ""}">
+       <iframe src="panel-frame.html?bare=1&v=4&s=${s.state}" title=""></iframe>
+     </div>
+     <div class="badge">krillion puffer party with friends</div>`;
+document.querySelector("#out").append(d);
+</script>

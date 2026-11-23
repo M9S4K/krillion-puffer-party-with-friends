@@ -512,4 +512,7 @@
 /* the invite keeps the dot's space so it lines up with the names */
 .kpj-dot.kpj-ghost { visibility: hidden; }
 
-
+/* Pixelify ties "fi" into one glyph, so a player called "finn" read as "Ann".
+   This goes last and covers the children too: every `font:` shorthand above
+   resets font-variant-ligatures back to normal. */
+#kpj, #kpj *, #kpj-toast, #kpj-toast * { font-variant-ligatures: none; }

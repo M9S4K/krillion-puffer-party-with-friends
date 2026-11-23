@@ -73,7 +73,9 @@ const api = {
     $("#kpj").append(t);                        // under the card, as the extension does it
   }
 };
-const key = new URLSearchParams(location.search).get("s") || "linked-alone";
+const params = new URLSearchParams(location.search);
+if (params.has("bare")) document.documentElement.style.background = document.body.style.background = "transparent";
+const key = params.get("s") || "linked-alone";
 (STATES[key] || STATES["linked-alone"]).build(api);
 document.title = key;
 </script>
