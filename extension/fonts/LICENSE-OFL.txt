@@ -1,0 +1,6 @@
+Pixelify Sans and VT323 are licensed under the SIL Open Font License 1.1.
+  Pixelify Sans  https://fonts.google.com/specimen/Pixelify+Sans
+  VT323          https://fonts.google.com/specimen/VT323
+Full licence text: https://openfontlicense.org/
+The woff2 files here are the latin subsets, and their bytes are inlined into
+extension/content.css by tools/embed-fonts.py.

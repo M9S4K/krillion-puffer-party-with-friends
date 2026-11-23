@@ -1,141 +1,202 @@
 # Krillion Puffer Party With Friends
 
-A Chrome extension for two (or more) people who want to land in the **same** Puffer Party
-room on [krillion.io](https://krillion.io/party). One of you joins a room; everyone else in
-the party is pulled in automatically - no code shouted over Discord, no typing, no clicking.
+<img src="extension/icons/icon128.png" width="84" align="right" alt="">
 
-## What it does
+A small Chrome extension so you and your friends land in the **same**
+Puffer Party room on [krillion.io](https://krillion.io/party).
 
-- **You join a room → your friend joins the same room.** His browser opens
-  `krillion.io/party/<CODE>` and presses TAKE A SEAT for him. He touches nothing.
-- Works whichever way you got in: `JOIN` from the public list, `JOIN BY CODE`,
-  `QUICK PLAY`, `RATED`, or hosting your own room.
-- **Find a room**: reads the live public room list and jumps you both into the
-  fullest lobby that still has room for the two of you. This is the fix for Quick Play,
-  which deliberately drops you in the fullest lobby it can find - usually one with exactly
-  one seat left, which is why you two keep getting split up.
-- **Room size picker**, left of that button: `Any size`, `1v1`, `3 players`, `4-6`, `8-10`.
-  The finder only offers lobbies of the size you picked.
+One of you joins a room. Everyone else gets pulled in automatically.
+No shouting a code over Discord, no typing, no clicking.
 
-It does not log in for you, does not bypass anything, and does not touch the game beyond
-clicking the same buttons you would. If Krillion shows its occasional Cloudflare
-verification, the extension beeps and tells you to tap it - that one is yours.
+<br clear="right">
 
-## Install (both of you)
+![The panel sitting on the Krillion page](docs/img/hero.jpg)
 
-1. Copy the `extension` folder onto the machine.
-2. Open `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → pick the folder.
-3. Open https://krillion.io/party. The panel opens at the bottom left on first run.
-4. Type the **same party name** on both machines - something nobody would guess.
-5. Type your display name under YOUR NAME on the Krillion page once. Krillion will not seat
-   you without it.
+---
 
-Everything lives in that panel. The toolbar popup only mirrors the party name and gives you
-a link to the game.
+## The problem it fixes
 
-## Using it
+Puffer Party's **Quick Play** puts you in the fullest lobby it can find. That is
+good for the game — rooms fill up fast — and terrible for friends, because the
+fullest lobby usually has exactly **one** seat left.
 
-The panel collapses to a pill: `● PARTY · 2` - the dot is your relay link, the number is how
-many of you are connected. Click it to open. A second card peeks out from behind it, and
-every passing line (status, errors, what the finder is doing) lands there, so the main card
-never jumps around.
+So you press Quick Play together and get split up. Every time.
 
-- **Who's here** sits at the top: each of you, and the room you are in. When you are in the
-  same room it says **with you**, in green. That is the question the tool exists to answer.
-- **Find a room** - the one button. Picks the fullest public lobby with a free seat
-  for everyone in your party and takes you both in. The number of seats comes from how many
-  of you are linked, so there is nothing to configure.
-- **Size picker** to its left - restrict the search to `1v1`, `3 players`, `4-6` or `8-10`.
-- **Party name** is editable straight in the header; the ⓘ beside it explains what it does.
-  There is no settings screen - following, auto-seating and the room search are always on.
+This extension gives you a shared "party". When one of you goes into a room,
+the others follow into that same room, in the same second.
 
-Joining any room by hand still works the same way: click `JOIN` on any room, use `JOIN BY
-CODE`, `QUICK PLAY`, `RATED` or host - your friend is pulled in either way.
+---
 
-## How you two are connected
+## Install it (each person does this once)
 
-Through [ntfy.sh](https://ntfy.sh), a free public pub/sub relay - there is no server for you
-to run. The party name becomes a channel (`kpj-<party-name>`); each browser listens on
-`wss://ntfy.sh/kpj-<party-name>/ws`, and joining a room POSTs the four-letter code to it.
-Delivery is usually under half a second.
+You both need it installed. It takes about a minute.
 
-Two things follow from that:
+1. **Download** the latest `krillion-party-joiner-x.y.z.zip` from
+   [Releases](../../releases), and unzip it.
+2. Open **`chrome://extensions`** in your browser.
+3. Turn on **Developer mode** (top right).
+4. Click **Load unpacked** and pick the folder you just unzipped.
+5. Go to [krillion.io/party](https://krillion.io/party). A panel appears in the
+   top right corner.
 
-- **Pick an unguessable party name.** Anyone using the same name is in your party.
-- Only a room code and a random client id ever travel. No names, no accounts. ntfy drops
-  messages after about 12 hours.
+> Works in Chrome and other Chrome-based browsers (Edge, Brave, Arc, Dia).
 
-To use your own relay instead, change `NTFY` in `background.js` and the `wss://` URL in
-`content.js` - any pub/sub that speaks HTTP POST and WebSocket will do.
+---
 
-## Sharing a log
+## Use it
 
-The extension keeps its last 250 events - relay connects, publishes, peers
-appearing, follows, seat attempts, room searches - and survives page reloads.
+### 1. Agree on a party name
 
-- **Click the status line** at the foot of the card, or press **Alt+L**, to copy the
-  whole log to the clipboard. Paste it wherever you need it.
-- The report starts with the extension version, browser, relay state and peer count.
-  Your party name is masked (first two characters and a length), so the log is safe
-  to paste in public.
-- If the clipboard is blocked, the log is printed to the console instead (F12).
+Type the **same name** on every machine. That is the whole setup — the name is
+what links you together.
 
-## If something misbehaves
+Pick something nobody would guess, like `deep-sea-crew-4417`. Anyone who types
+your party name joins your party, so treat it a bit like a password.
 
-- **Red dot on the badge** - no relay connection. Check the party name is set and that
-  you are online; it retries on its own.
-- **"filled up before you got there"** - the last seat went to someone else. Hit
-  **Find a room** and go again.
-- **Friend does not follow** - party names must match exactly, both need **Linked** on, and
-  his krillion.io tab has to be open.
-- **Nothing happens after a Krillion update** - the extension keys off two bits of the
-  page: the `▼ TAKE A SEAT ▼` button text (`autoSeat()` in `content.js`) and room rows
-  reading `CODE host 4/6 · PLAYING` (`watchClicks()`). If Krillion rewords either, adjust
-  those two matchers.
+A spinner appears while it connects, then a tick. Your friend shows up in the
+list the moment they type the same name.
 
-## What was tested
+### 2. Play normally
 
-Run live against krillion.io on 22 Nov 2026, with two browser tabs standing in for two
-machines:
+Join a room however you like — the public list, **Join by code**, **Quick Play**,
+**Rated**, or by hosting your own. Your friends are pulled in behind you.
 
-- Room-code extraction from the public list - correct on every row, `FULL` rows skipped,
-  character-tier buttons ignored.
-- Leader click → relay → follower lands on `krillion.io/party/<CODE>`: works. Relay
-  delivery measured at **82 ms**.
-- TAKE A SEAT found and clicked automatically, 352 ms after the page opened.
-- Room picker against the live room list: 14 valid lobbies out of 50 rooms, picks
-  the fullest one with space for both.
+They do not have to click anything. Their browser opens the room and presses
+**Take a seat** for them.
 
-Not covered: the final seated-in-the-room step. Krillion's Cloudflare verification would
-not load in the test browser, so no seat was actually taken. That is the one step you will
-confirm on the first real run.
+### 3. Or let it find a room for you
 
-## Files
+<img src="docs/img/sizes.png" width="300" align="right" alt="The room size menu, open">
 
-| File | Role |
-|---|---|
-| `manifest.json` | Chrome manifest (MV3) |
-| `content.js` | Runs on krillion.io: watches rooms, badge UI, follows, takes the seat |
-| `background.js` | Publishes to the relay, reads the public room list |
-| `popup.html` / `popup.js` | Settings |
-| `content.css` | Panel, shelf and toast styling |
-| `icons/` | Toolbar icon: two krill from the game, composed from `krillion.io/tiers/krillion.png` |
-| `RESEARCH.md` | How Krillion's party backend works, and why Quick Play splits you up |
+Press **Find room** and it reads the live room list and picks a lobby with
+enough free seats for everyone in your party — then takes you all there.
 
-## Note on the icon
+Use the size button on the left to say what kind of game you want:
+**Any**, **1v1**, **3s**, **4-6**, **8-10** or **10+**.
 
-The toolbar icon is built from Krillion's own krill sprites (`/tiers/krillion.png` and
-`/tiers/krillion-gold.png`) on the game's trench gradient. That is the game's artwork - fine for a private tool the two of you load
-unpacked, not something to publish to the Chrome Web Store.
+<br clear="right">
 
-## Design lab
+### Once you are all in together
 
-`python3 tools/build-preview.py` regenerates `ui-preview.html` from the extension's own CSS
-and markup. The page shows every panel state and a lab on the right:
+<img src="docs/img/together.png" width="300" align="right" alt="The panel with two people in the same room">
 
-- **Version** - flip between the working copy and any commit that touched the panel. Each
-  version renders in its own frame with its own stylesheet, so you can see what changed.
-- **Editing** - All elements tunes the shared tokens; pick a single element and you get its
-  own padding, margin, size, colours, stroke and corners, seeded from its computed style.
-- Every row has an info icon explaining what the value does.
-- **Copy tokens** puts the result on the clipboard, ready to paste into `content.css`.
+The button changes to **Hold to move** and needs a four-second press.
+
+That is on purpose. Once you have all got seats, one stray click should not
+drag everybody back out of the room you just filled.
+
+<br clear="right">
+
+---
+
+## Settings
+
+<img src="docs/img/settings.png" width="300" align="right" alt="The four settings switches">
+
+Click the sliders icon in the panel's header.
+
+- **Keep my party connected** — turn the whole thing off for a bit
+- **Follow my party into games** — go where they go
+- **Take seat automatically** — press Take a seat for you on arrival
+- **Play a sound** — a short blip when a friend turns up or you get pulled in
+
+<br clear="right">
+
+---
+
+## What it sends, and where
+
+Short version: **a four-letter room code, and nothing else.**
+
+Your browsers talk to each other through a free public MQTT message broker
+(`broker.hivemq.com`, falling back to `test.mosquitto.org`). The "channel" they
+talk on is your party name.
+
+What travels: the room code, your Krillion display name, and whether you have
+following switched on. That is the entire message.
+
+What does **not**: no account, no login, no email, no analytics, no tracking,
+and nothing is stored on any server. There is no account to make.
+
+Because the broker is public, anyone who guesses your party name could see your
+room codes and join your games. That is the only reason to pick an unusual name.
+
+---
+
+## If something is not working
+
+**Nothing happens when my friend joins a room.**
+Check you have typed exactly the same party name, character for character. Open
+the panel on both machines and make sure you can each see the other's name.
+
+**It opens the room but I am not in the game.**
+Krillion will not seat you until you have typed a display name under **YOUR
+NAME** on its page. Do that once and it sticks.
+
+**It says Krillion wants a quick verification.**
+That is Cloudflare, and only you can tap it. The extension waits for you.
+
+**Something else.**
+Click the status line at the bottom of the panel, or press **Alt+L**. That copies
+a log of what happened, with your party name masked, ready to paste into an issue.
+
+---
+
+## For developers
+
+Plain JavaScript and CSS. No build step, no dependencies, no framework.
+
+```
+extension/
+  manifest.json    Chrome MV3 manifest
+  content.js       the whole panel: UI, presence, relay, auto-seat
+  content.css      styles and the two fonts, inlined as data URIs
+  background.js    one job: fetch the public room list (CORS)
+  popup.html/js    the toolbar shortcut
+tools/
+  panel-states.html  every UI state, side by side  →  open it, it is useful
+  panel-states.js    the state table behind that page
+  panel-frame.html   renders one state: panel-frame.html?s=together
+  embed-fonts.py     re-inlines the woff2 files into content.css
+  pack.sh            builds krillion-party-joiner-<version>.zip
+docs/img/          the screenshots in this README
+RESEARCH.md        how Krillion's party backend actually works
+```
+
+**Run the state gallery**, which renders the real stylesheet so it cannot drift
+from the extension:
+
+```bash
+python3 -m http.server 8787
+```
+
+Then open `http://localhost:8787/tools/panel-states.html`.
+
+**Build a zip:**
+
+```bash
+./tools/pack.sh
+```
+
+A few things worth knowing before you change anything:
+
+- The relay is hand-rolled MQTT 3.1.1 over a WebSocket, about 30 lines in
+  `content.js`. No library ships with the extension. It replaced
+  [ntfy.sh](https://ntfy.sh), which has a ~250 message/day cap this blew through
+  in hours.
+- The fonts are **inlined as data URIs**. A `chrome-extension://` font referenced
+  from a content script's stylesheet does not load on krillion.io, even listed in
+  `web_accessible_resources`. Run `tools/embed-fonts.py` after changing them.
+- `content.js` is a single IIFE on purpose — content scripts have no module
+  loader and this needs no bundler.
+
+---
+
+## Licence
+
+[MIT](LICENSE).
+
+Pixelify Sans and VT323 are bundled under the
+[SIL Open Font License 1.1](https://openfontlicense.org/).
+
+Not affiliated with Krillion. It clicks the same buttons you would, and nothing else.

@@ -1,7 +1,7 @@
 /* Every state the panel can be in, taken from extension/content.js.
    `when` is the thing that puts it on screen. Keep in step with the source. */
-const ME = ["puffa", 1, "browsing"];
-const PARTY = "puffa-trench-8471";
+const ME = ["coral", 1, "browsing"];
+const PARTY = "deep-sea-crew";
 
 export const STATES = {
   /* ---- the collapsed pill ------------------------------------------- */
@@ -42,41 +42,41 @@ export const STATES = {
     build: a => { a.rows([ME]); a.msgHidden(); } },
   "linked-group": { group: "Setup", cap: "Linked, friend here",
     when: "Someone else is on the same party name.",
-    build: a => { a.rows([ME, ["Finum", 0, "browsing"]]); a.msgHidden(); } },
+    build: a => { a.rows([ME, ["finn", 0, "browsing"]]); a.msgHidden(); } },
 
   /* ---- who is here --------------------------------------------------- */
   "friend-browsing": { group: "Presence", cap: "Friend browsing",
     when: "They have the extension open but are in no room.",
-    build: a => { a.rows([ME, ["Finum", 0, "browsing"]]); a.msgHidden(); } },
+    build: a => { a.rows([ME, ["finn", 0, "browsing"]]); a.msgHidden(); } },
   "friend-playing": { group: "Presence", cap: "Friend playing",
     when: "They are in a room and you are not. Press the key to chase a lobby.",
-    build: a => { a.rows([ME, ["Finum", 0, "playing"]]); a.msgHidden(); } },
+    build: a => { a.rows([ME, ["finn", 0, "playing"]]); a.msgHidden(); } },
   "too-late": { group: "Presence", cap: "Too late",
     when: "You are both in rooms, but different ones.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "too late"]]);
+    build: a => { a.rows([["coral", 1, "in GNFS"], ["finn", 0, "too late"]]);
                   a.msgHidden(); } },
   "together": { group: "Presence", cap: "Together",
     when: "Everyone the relay can hear is in your room. The key changes mode.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"]]);
+    build: a => { a.rows([["coral", 1, "in GNFS"], ["finn", 0, "", "kpj-same"]]);
                   a.key("Hold to move", { hold: true });
                   a.msgHidden(); } },
   "crowd": { group: "Presence", cap: "Four of you",
     when: "A party is however many turn up. The invite row is always last.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"],
+    build: a => { a.rows([["coral", 1, "in GNFS"], ["finn", 0, "", "kpj-same"],
                           ["shrimpy", 0, "", "kpj-same"], ["kelp", 0, "browsing"]]);
                   a.key("Hold to move", { hold: true }); a.pill("Party · 4");
                   a.msgHidden(); } },
   "friend-stuck": { group: "Presence", cap: "Friend will not follow",
     when: "They switched following off. Their dot goes red and the row says why.",
-    build: a => { a.rows([ME, ["Finum", 0, "not following", "kpj-stuck"]]); a.msgHidden();
+    build: a => { a.rows([ME, ["finn", 0, "not following", "kpj-stuck"]]); a.msgHidden();
                   document.querySelectorAll(".kpj-stuck .kpj-dot").forEach(d => d.className = "kpj-dot dead"); } },
   "friend-arrived": { group: "Presence", cap: "Friend just arrived",
     when: "Their row blinks for two seconds, so an arrival is not missed mid-game.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same kpj-blink"]]);
+    build: a => { a.rows([["coral", 1, "in GNFS"], ["finn", 0, "", "kpj-same kpj-blink"]]);
                   a.key("Hold to move", { hold: true }); a.msgHidden(); } },
   "stale": { group: "Presence", cap: "Friend dropped off",
     when: "No heartbeat for 70 seconds, so the row is gone and the key reverts.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"]]); a.msgHidden(); } },
+    build: a => { a.rows([["coral", 1, "in GNFS"]]); a.msgHidden(); } },
 
   /* ---- the party name tooltip ---------------------------------------- */
   "tooltip": { group: "Tooltip", cap: "Party name, explained", wide: true,
@@ -101,11 +101,11 @@ export const STATES = {
                   a.say("Name your party above, same on both machines."); } },
   "key-hold": { group: "The key", cap: "Hold to move",
     when: "You are all in one room, so a stray tap must not drag everyone out.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"]]);
+    build: a => { a.rows([["coral", 1, "in GNFS"], ["finn", 0, "", "kpj-same"]]);
                   a.key("Hold to move", { hold: true }); a.msgHidden(); } },
   "key-holding": { group: "The key", cap: "Holding, 1.6s in",
     when: "Four seconds of pointer or Enter. Let go and it snaps back in 200ms.",
-    build: a => { a.rows([["puffa", 1, "in GNFS"], ["Finum", 0, "", "kpj-same"]]);
+    build: a => { a.rows([["coral", 1, "in GNFS"], ["finn", 0, "", "kpj-same"]]);
                   a.key("Hold to move", { hold: true, fill: "60%" });
                   a.msgHidden(); } },
 
@@ -142,7 +142,7 @@ export const STATES = {
   /* ---- sending a room to the party ------------------------------------- */
   "sent": { group: "Sending", cap: "Sent",
     when: "You joined a room and the code went out over the relay.",
-    build: a => { a.rows([ME, ["Finum", 0, "browsing"]]); a.say("Sent GNFS to your party."); } },
+    build: a => { a.rows([ME, ["finn", 0, "browsing"]]); a.say("Sent GNFS to your party."); } },
   "sent-alone": { group: "Sending", cap: "Nobody listening",
     when: "The code went out, but no live peer is on the topic.",
     build: a => { a.rows([ME]); a.say("Sent GNFS - nobody is listening yet."); } },
@@ -156,7 +156,7 @@ export const STATES = {
   /* ---- toasts, bottom right -------------------------------------------- */
   "toast-following": { group: "Toasts", tall: true, cap: "Following a friend",
     when: "A friend's room code arrived. The page is about to navigate.",
-    build: a => { a.rows([ME, ["Finum", 0, "playing"]]); a.toast("Finum went to AVXF - following."); } },
+    build: a => { a.rows([ME, ["finn", 0, "playing"]]); a.toast("finn went to AVXF - following."); } },
   "toast-filled": { group: "Toasts", tall: true, cap: "Room filled up",
     when: "You arrived and every seat had gone.",
     build: a => { a.rows([ME]); a.toast("GNFS filled up before you got there. Try Find a room again."); } },
