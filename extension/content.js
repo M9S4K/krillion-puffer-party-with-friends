@@ -5,7 +5,7 @@
   if (window.__kpjLoaded) return;
   window.__kpjLoaded = true;
 
-  const DEFAULTS = { enabled: true, party: "", follow: true, autoSeat: true, size: "any", open: false };
+  const DEFAULTS = { enabled: true, party: "", follow: true, autoSeat: true, sound: true, size: "any", open: false };
   const ROOM_RE = /^\/party\/([A-Za-z]{4})\/?$/;
   const ECHO_MS = 25000;
   const SEAT_TIMEOUT_MS = 15000;
@@ -51,7 +51,7 @@
       `browser   ${navigator.userAgent}`,
       `page      ${location.pathname}`,
       `party     ${maskParty(cfg.party)}`,
-      `settings  follow=${cfg.follow} autoSeat=${cfg.autoSeat} size=${cfg.size}`,
+      `settings  follow=${cfg.follow} autoSeat=${cfg.autoSeat} sound=${cfg.sound} size=${cfg.size}`,
       `relay     ${wsState} via ${BROKERS[brokerIdx % BROKERS.length]}`,
       `peers     ${livePeers().length} live, ${peers.size} known`,
       "",
@@ -127,6 +127,7 @@
             <label><input type="checkbox" id="kpj-enabled"><span>Keep my party linked</span></label>
             <label><input type="checkbox" id="kpj-follow"><span>Follow my party into rooms</span></label>
             <label><input type="checkbox" id="kpj-autoSeat"><span>Take my seat automatically</span></label>
+            <label><input type="checkbox" id="kpj-sound"><span>Play a sound</span></label>
           </div>
         </div>
         <div id="kpj-who"></div>
@@ -322,8 +323,41 @@
     if (ms) t._h = setTimeout(() => t.classList.remove("show", "sticky"), ms);
   }
 
+  /* ---------- sound ----------
+     Square-wave blips, synthesised rather than shipped: no asset, no network,
+     and it suits a pixel game. A page needs a gesture before audio will play,
+     so the context is made on the first blip and every failure is swallowed. */
+  let actx = null;
+  const TUNES = {
+    arrive: [[880, 0, .07], [1320, .07, .09]],   // someone joined you
+    move:   [[660, 0, .10]]                      // your screen is about to change
+  };
+  function blip(kind) {
+    if (!cfg.sound) return;
+    const notes = TUNES[kind];
+    if (!notes) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === "suspended") actx.resume();
+      const t0 = actx.currentTime;
+      for (const [hz, at, len] of notes) {
+        const osc = actx.createOscillator(), gain = actx.createGain();
+        osc.type = "square";
+        osc.frequency.value = hz;
+        // a ramp at each end, or the square wave clicks
+        gain.gain.setValueAtTime(0.0001, t0 + at);
+        gain.gain.exponentialRampToValueAtTime(0.05, t0 + at + .008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + at + len);
+        osc.connect(gain).connect(actx.destination);
+        osc.start(t0 + at);
+        osc.stop(t0 + at + len + .02);
+      }
+    } catch { /* no audio on this page, so no sound */ }
+  }
+
   // a friend turning up while you are mid-game is easy to miss, so their row blinks
   function blink(id) {
+    blip("arrive");
     blinkUntil.set(id, now() + 2000);
     setTimeout(() => { blinkUntil.delete(id); render(); }, 2050);
   }
@@ -557,6 +591,7 @@
     if (lastHandled.code === code && now() - lastHandled.at < ECHO_MS) return;
     lastHandled = { code, at: now() };
     log("following", { code, who });
+    blip("move");
     toast(`${who || "Your friend"} went to ${code} - following.`);
     sessionStorage.setItem("kpj-follow", code);
     location.href = `https://krillion.io/party/${code}`;
@@ -673,7 +708,7 @@
       build();
       el.party.value = cfg.party || "";
       paintSize();
-      for (const k of ["enabled", "follow", "autoSeat"]) {
+      for (const k of ["enabled", "follow", "autoSeat", "sound"]) {
         const n = el.root.querySelector("#kpj-" + k);
         if (n) n.checked = !!cfg[k];
       }
