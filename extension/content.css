@@ -51,7 +51,6 @@
             color-mix(in oklab, var(--stroke-2) var(--stroke-mix), var(--stroke-1)));
   --border-subtle: oklch(var(--stroke-l) var(--stroke-c) var(--stroke-h) / calc(var(--stroke-a) * .78));
   --border: var(--stroke-1);
-  --border-input: var(--navy-400);
   --text: var(--navy-100);
   --text-dim: var(--navy-300);
   --text-faint: var(--navy-400);
@@ -66,7 +65,6 @@
   --bg-2: var(--surface-raised);
   --edge: var(--border-subtle);
   --edge-strong: var(--border);
-  --edge-input: var(--border-input);
 
   /* --- shape (concentric: outer = inner + padding) --------------------- */
   --pad: 15px;
@@ -191,7 +189,7 @@
 }
 #kpj button#kpj-info svg { width: 11px; height: 11px; }
 /* the name and, beside it, how the link is doing */
-#kpj-name-row { display: flex; align-items: center; gap: 8px; }
+#kpj-name-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
 #kpj-link {
   flex: 0 0 auto; width: 14px; height: 14px; display: grid; place-items: center;
   opacity: 0; transition: opacity 450ms ease-out;
@@ -230,18 +228,14 @@
   accent-color: var(--accent);
 }
 
-#kpj-name-input {                                  /* underline only, no box */
-  flex: 1; min-width: 0; min-height: 21px; padding: 0 0 2px;
+#kpj-name-input {                   /* just text: no box, no rule, no fixed width */
+  field-sizing: content;            /* so the cue can sit right beside the name */
+  min-width: 4ch; max-width: 100%; min-height: 21px; padding: 0;
   font: 500 var(--fs-name)/1.27 var(--font-ui); color: var(--text); background: transparent;
-  border: 0; border-bottom: var(--stroke-w) solid transparent; border-radius: 0;
+  border: 0; border-radius: 0;
   text-overflow: ellipsis;
-  transition: border-color 140ms var(--ease), box-shadow 140ms var(--ease);
 }
 #kpj-name-input::placeholder { color: var(--text-faint); }
-#kpj-name-input:focus {
-  outline: none; border-bottom-color: var(--accent);
-  box-shadow: 0 1px 0 0 var(--accent);             /* a 2px underline without a layout shift */
-}
 
 /* info tooltip */
 /* it hangs off the card, to the left, so it covers none of the panel */
@@ -404,7 +398,6 @@
 @media (hover: hover) and (pointer: fine) {
   #kpj button.kpj-invite:hover { color: var(--text); }
   #kpj button#kpj-msg:hover { color: var(--text-dim); }
-  #kpj-name-input:hover:not(:focus) { border-bottom-color: var(--edge-input); }
   #kpj button#kpj-info:hover { color: var(--text); }
   #kpj button#kpj-pill:hover { border-color: var(--edge-strong); color: var(--text); }
   #kpj-top button:hover { color: var(--text); background: color-mix(in oklab, var(--edge) 35%, transparent); }

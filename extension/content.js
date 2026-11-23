@@ -621,7 +621,7 @@
         btn.click();
         setTimeout(() => {
           if (roomCode() === code && /take a seat/i.test(document.body.innerText || "")) { toast(`Couldn\u2019t seat you in ${code}. Press Take a seat to join.`, 0);
-          } else { toast(`You're in ${code}.`); heartbeat(); }
+          } else { heartbeat(); }      // you can see you are in; no toast for it
         }, 2500);
         return;
       }
